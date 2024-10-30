@@ -3,7 +3,7 @@
 // @namespace    none
 // @version      1.0.0
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
-// @include      *
+// @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
