@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      0.8
+// @version      1.0.0
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      *
 // @grant        GM.xmlHttpRequest
@@ -14,8 +14,6 @@
 
     const menuData = JSON.parse(localStorage.getItem("menuData") || "[]");
     localStorage.clear();
-
-    // Update version. 
 
     function insertText(elem, text) {
         if (elem.isContentEditable) {
