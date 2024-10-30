@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.1a
+// @version      1.0.2
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
