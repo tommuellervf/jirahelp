@@ -5,8 +5,8 @@
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      *
 // @grant        GM.xmlHttpRequest
-// @updateURL    https://raw.githubusercontent.com/tommuellervf/dein-repository/main/dein-skript.user.js
-// @downloadURL  https://raw.githubusercontent.com/dein-nutzername/dein-repository/main/dein-skript.user.js
+// @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
+// @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
 // ==/UserScript==
 
 (function() {
