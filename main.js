@@ -15,6 +15,8 @@
     const menuData = JSON.parse(localStorage.getItem("menuData") || "[]");
     localStorage.clear();
 
+    // Update version. 
+
     function insertText(elem, text) {
         if (elem.isContentEditable) {
             document.execCommand("insertText", false, text);
