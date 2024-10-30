@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.2
+// @version      1.0.3
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -53,10 +53,10 @@
          if (text.includes("%%t")) {
              const clipboardText = await getClipboardText();
              text = text.replace("%%t", clipboardText);
+         } else if (text.includes("%%CS")) {
+             const csValue = document.getElementById("customfield_10200-val")?.innerText.trim() || '00000000';
+             text = text.replace("%%CS", csValue);
          }
-
-         const csValue = document.getElementById("customfield_10200-val")?.innerText.trim() || '00000000';
-         text = text.replace("%%CS", csValue);
 
          return text;
      }
