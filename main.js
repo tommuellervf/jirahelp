@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.1
+// @version      1.0.1a
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -70,7 +70,7 @@
 
      const menu = createElement('div', {
          position: 'absolute',
-         backgroundColor: '#ffffff',
+         backgroundColor: '#fbfbfb',
          border: '1px solid #ddd',
          padding: '5px',
          cursor: 'pointer',
@@ -91,7 +91,7 @@
              position: 'absolute',
              bottom: '0',
              left: '100%',
-             backgroundColor: '#ffffff',
+             backgroundColor: '#fbfbfb',
              border: '1px solid #ddd',
              display: 'none',
              width: '350px'
