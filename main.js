@@ -3,7 +3,7 @@
 // @namespace    none
 // @version      1.0.3
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
-// @include      https://nd-jira.unity.media.corp/*
+// @include      *
 // @grant        GM.xmlHttpRequest
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
@@ -15,154 +15,165 @@
     const menuData = JSON.parse(localStorage.getItem("menuData") || "[]");
     localStorage.clear();
 
-     function insertText(elem, text) {
-         if (elem.isContentEditable) {
-             document.execCommand("insertText", false, text);
-         } else if (elem.tagName === 'INPUT' || elem.tagName === 'TEXTAREA') {
-             const startPos = elem.selectionStart;
-             elem.value = elem.value.slice(0, startPos) + text + elem.value.slice(elem.selectionEnd);
-             elem.selectionStart = elem.selectionEnd = startPos + text.length;
+    function insertText(elem, text) {
+        if (elem.isContentEditable) {
+            document.execCommand("insertText", false, text);
+        } else if (elem.tagName === 'INPUT' || elem.tagName === 'TEXTAREA') {
+            const startPos = elem.selectionStart;
+            elem.value = elem.value.slice(0, startPos) + text + elem.value.slice(elem.selectionEnd);
+            elem.selectionStart = elem.selectionEnd = startPos + text.length;
 
-             const startMarkPos = startPos + text.indexOf("NAME");
-             const endMarkPos = startMarkPos + "NAME".length;
+            const startMarkPos = startPos + text.indexOf("NAME");
+            const endMarkPos = startMarkPos + "NAME".length;
 
-             if (startMarkPos !== -1) {
-                 elem.selectionStart = startMarkPos;
-                 elem.selectionEnd = endMarkPos;
-             }
-         }
-         elem.focus();
-     }
+            if (startMarkPos !== -1) {
+                elem.selectionStart = startMarkPos;
+                elem.selectionEnd = endMarkPos;
+            }
+        }
+        elem.focus();
+    }
 
-     async function getClipboardText() {
-         try {
-             const text = await navigator.clipboard.readText();
-             if (/^[\d\-\/]+$/.test(text)) {
-                 return text;
-             } else {
-                 return '00000000';
-             }
-         } catch (err) {
-             console.error('Failed to read clipboard contents: ', err);
-             return '00000000';
-         }
-     }
+    async function getClipboardText() {
+        try {
+            const text = await navigator.clipboard.readText();
+            return /^[\d\-\/]+$/.test(text) ? text : '00000000';
+        } catch (err) {
+            console.error('Failed to read clipboard contents: ', err);
+            return '00000000';
+        }
+    }
 
-     async function replacePlaceholder(text) {
+    async function replacePlaceholder(text) {
+        if (text.includes("%%t")) {
+            const clipboardText = await getClipboardText();
+            text = text.replace("%%t", clipboardText);
+        }
 
-         if (text.includes("%%t")) {
-             const clipboardText = await getClipboardText();
-             text = text.replace("%%t", clipboardText);
-         } else if (text.includes("%%CS")) {
-             const csValue = document.getElementById("customfield_10200-val")?.innerText.trim() || '00000000';
-             text = text.replace("%%CS", csValue);
-         }
+        const csValue = document.getElementById("customfield_10200-val")?.innerText.trim() || '00000000';
+        text = text.replace("%%CS", csValue);
 
-         return text;
-     }
+        return text;
+    }
 
-     const createElement = (tag, styles, innerText) => {
-         const element = document.createElement(tag);
-         Object.assign(element.style, styles);
-         if (innerText) element.innerText = innerText;
-         return element;
-     };
+    const createElement = (tag, styles, innerText) => {
+        const element = document.createElement(tag);
+        Object.assign(element.style, styles);
+        if (innerText) element.innerText = innerText;
+        return element;
+    };
 
-     const menu = createElement('div', {
-         position: 'absolute',
-         backgroundColor: '#fbfbfb',
-         border: '1px solid #ddd',
-         padding: '5px',
-         cursor: 'pointer',
-         display: 'none',
-         zIndex: '10000',
-         width: '200px'
-     });
+    const menu = createElement('div', {
+        position: 'absolute',
+        backgroundColor: '#fbfbfb',
+        border: '1px solid #ddd',
+        padding: '5px',
+        cursor: 'pointer',
+        display: 'none',
+        zIndex: '10000',
+        width: '200px',
+        borderRadius: '8px',
+        boxShadow: '4px 4px 8px rgba(0, 0, 0, 0.1)',
+        fontFamily: '"Roboto", "LocalRoboto", "Helvetica Neue", "Helvetica", sans-serif'
+    });
 
-     menuData.forEach(category => {
-         const categoryItem = createElement('div', {
-             padding: '5px',
-             cursor: 'pointer',
-             borderBottom: '1px solid #ddd',
-             position: 'relative'
-         }, category.label);
+    for (let i = 0; i < menuData.length; i++) {
+        const category = menuData[i];
+        const categoryItem = createElement('div', {
+            padding: '5px',
+            cursor: 'pointer',
+            position: 'relative',
+            borderBottom: i < menuData.length - 1 ? '1px solid #ddd' : ''
+        }, category.label);
 
-         const subMenu = createElement('div', {
-             position: 'absolute',
-             bottom: '0',
-             left: '100%',
-             backgroundColor: '#fbfbfb',
-             border: '1px solid #ddd',
-             display: 'none',
-             width: '350px'
-         });
+        // Event-Listener für Hauptmenü hinzufügen
+        categoryItem.addEventListener('mouseenter', () => {
+            categoryItem.style.backgroundColor = '#f0f0f0'; // Hintergrundfarbe beim Hover
+            subMenu.style.display = 'block';
+            const categoryItemRect = categoryItem.getBoundingClientRect();
+            const subMenuRect = subMenu.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
 
-         category.items.forEach(snippet => {
-             const subMenuItem = createElement('div', {
-                 padding: '5px',
-                 cursor: 'pointer',
-                 borderBottom: '1px solid #ddd'
-             }, snippet.label);
+            if (categoryItemRect.bottom + subMenuRect.height > viewportHeight) {
+                subMenu.style.bottom = '0';
+            }
+        });
 
-             subMenuItem.addEventListener('mouseenter', () => { subMenuItem.style.backgroundColor = '#f0f0f0' });
-             subMenuItem.addEventListener('mouseleave', () => { subMenuItem.style.backgroundColor = 'transparent' });
-             subMenuItem.addEventListener('click', async () => {
-                 const textToInsert = await replacePlaceholder(snippet.text);
-                 insertText(targetElement, textToInsert);
-                 menu.style.display = 'none';
-             });
+        categoryItem.addEventListener('mouseleave', () => {
+            categoryItem.style.backgroundColor = 'transparent'; // Hintergrundfarbe zurücksetzen
+            subMenu.style.display = 'none';
+        });
 
-             subMenu.appendChild(subMenuItem);
-         });
+        const subMenu = createElement('div', {
+            position: 'absolute',
+            bottom: '0',
+            left: '100%',
+            backgroundColor: '#fbfbfb',
+            border: '1px solid #ddd',
+            display: 'none',
+            width: '350px',
+            borderRadius: '8px',
+            boxShadow: '4px 4px 8px rgba(0, 0, 0, 0.1)'
+        });
 
-         categoryItem.appendChild(subMenu);
-         menu.appendChild(categoryItem);
+        category.items.forEach(snippet => {
+            const subMenuItem = createElement('div', {
+                padding: '5px',
+                cursor: 'pointer',
+                borderBottom: '1px solid #ddd'
+            }, snippet.label);
 
-         categoryItem.addEventListener('mouseenter', () => {
-             subMenu.style.display = 'block';
-             const categoryItemRect = categoryItem.getBoundingClientRect();
-             const subMenuRect = subMenu.getBoundingClientRect();
-             const viewportHeight = window.innerHeight;
+            subMenuItem.addEventListener('mouseenter', () => { subMenuItem.style.backgroundColor = '#f0f0f0' });
+            subMenuItem.addEventListener('mouseleave', () => { subMenuItem.style.backgroundColor = 'transparent' });
 
-             if (categoryItemRect.bottom + subMenuRect.height > viewportHeight) {
-                 subMenu.style.bottom = '0';
-             }
-         });
+            subMenuItem.addEventListener('click', () => {
+                handleClick(snippet.text);
+            });
 
-         categoryItem.addEventListener('mouseleave', () => { subMenu.style.display = 'none' });
-     });
+            subMenu.appendChild(subMenuItem);
+        });
 
-     document.body.appendChild(menu);
+        categoryItem.appendChild(subMenu);
+        menu.appendChild(categoryItem);
+    }
 
-     let targetElement = null;
+    document.body.appendChild(menu);
 
-     document.addEventListener('contextmenu', function(event) {
-         const target = event.target;
-         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-             event.preventDefault();
-             targetElement = target;
+    let targetElement = null;
 
-             menu.style.display = 'block';
-             let top = event.pageY, left = event.pageX;
+    document.addEventListener('contextmenu', function(event) {
+        const target = event.target;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+            event.preventDefault();
+            targetElement = target;
 
-             const menuHeight = menu.offsetHeight, menuWidth = menu.offsetWidth;
-             const viewportHeight = window.innerHeight, viewportWidth = window.innerWidth;
+            menu.style.display = 'block';
+            let top = event.pageY, left = event.pageX;
 
-             if (event.pageY + menuHeight > viewportHeight) {
-                 top = viewportHeight - menuHeight - 5;
-             }
-             if (event.pageX + menuWidth > viewportWidth) {
-                 left = viewportWidth - menuWidth - 5;
-             }
+            const menuHeight = menu.offsetHeight, menuWidth = menu.offsetWidth;
+            const viewportHeight = window.innerHeight, viewportWidth = window.innerWidth;
 
-             menu.style.top = `${top}px`;
-             menu.style.left = `${left}px`;
-         }
-     });
+            if (event.pageY + menuHeight > viewportHeight) {
+                top = viewportHeight - menuHeight - 5;
+            }
+            if (event.pageX + menuWidth > viewportWidth) {
+                left = viewportWidth - menuWidth - 5;
+            }
 
-     document.addEventListener('click', function(event) {
-         if (!menu.contains(event.target)) {
-             menu.style.display = 'none';
-         }
-     });
+            menu.style.top = `${top}px`;
+            menu.style.left = `${left}px`;
+        }
+    });
+
+    document.addEventListener('click', function(event) {
+        if (!menu.contains(event.target)) {
+            menu.style.display = 'none';
+        }
+    });
+
+    async function handleClick(snippetText) {
+        const textToInsert = await replacePlaceholder(snippetText);
+        insertText(targetElement, textToInsert);
+        menu.style.display = 'none';
+    }
 })();
