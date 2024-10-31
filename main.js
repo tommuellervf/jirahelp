@@ -18,7 +18,7 @@
         cursor: 'pointer',
         borderRadius: '8px',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-        fontFamily: '"Roboto", "LocalRoboto", "Helvetica Neue", "Helvetica", "sans-serif"'
+        fontFamily: '"Roboto", "LocalRoboto", "Helvetica Neue", "Helvetica", "sans-serif"',
         transition: 'all 0.2s ease'
     };
 
