@@ -1,25 +1,24 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.11
+// @version      1.0.12
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
 // ==/UserScript==
-
 (function() {
     'use strict';
 
     const COMMON_STYLES = {
         backgroundColor: '#ffffff',
-        border: '1px solid #ccc',
+        border: '1px solid rgba(80, 80, 80, 0.2)',
         cursor: 'pointer',
         borderRadius: '8px',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
         fontFamily: '"Aptos", "Helvetica Neue", "Helvetica", "sans-serif"',
-        transition: 'all 0.2s ease'
+        transition: 'all 0.2s ease-out'
     };
 
     class ContextMenu {
@@ -60,7 +59,7 @@
             const menu = this.createElement('div', {
                 ...COMMON_STYLES,
                 position: 'absolute',
-                padding: '5px',
+                padding: '2px',
                 display: 'none',
                 zIndex: '10000',
                 width: '200px'
@@ -98,9 +97,9 @@
             const subMenu = this.createElement('div', {
                 ...COMMON_STYLES,
                 position: 'absolute',
-                padding: '3px',
+                padding: '2px',
                 bottom: '0',
-                left: '100%',
+                left: '90%',
                 display: 'none',
                 width: '350px'
             });
@@ -130,12 +129,14 @@
         attachCategoryListeners(categoryItem, subMenu) {
             categoryItem.addEventListener('mouseenter', () => {
                 categoryItem.style.backgroundColor = '#f0f0f0';
-                categoryItem.style.transition = 'background-color 0.3s ease';
+                categoryItem.style.borderRadius = '5px'; // Ecken abrunden
+                categoryItem.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
                 subMenu.style.display = 'block';
             });
 
             categoryItem.addEventListener('mouseleave', () => {
                 categoryItem.style.backgroundColor = 'transparent';
+                categoryItem.style.borderRadius = '0'; // Ecken wieder gerade machen
                 subMenu.style.display = 'none';
             });
         }
@@ -145,16 +146,19 @@
 
             subMenuItem.addEventListener('mouseenter', () => {
                 subMenuItem.style.backgroundColor = '#f0f0f0';
+                subMenuItem.style.borderRadius = '5px'; // Ecken abrunden
             });
 
             subMenuItem.addEventListener('mouseleave', () => {
                 subMenuItem.style.backgroundColor = 'transparent';
+                subMenuItem.style.borderRadius = '0'; // Ecken wieder gerade machen
             });
 
             subMenuItem.addEventListener('click', () => {
                 this.handleClick(snippetText);
             });
         }
+
 
         async getClipboardText() {
             if (!navigator.clipboard || !navigator.clipboard.readText) {
