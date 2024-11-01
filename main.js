@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.14
+// @version      1.0.16
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -145,6 +145,7 @@
             const subMenuItem = this.createElement('div', {
                 padding: '5px',
                 cursor: 'pointer',
+                borderRadius: '5px',
                 borderBottom: isLastItem ? 'none' : '1px solid #ddd'
             }, snippet.label);
 
@@ -156,14 +157,13 @@
         attachCategoryListeners(categoryItem, subMenu) {
             categoryItem.addEventListener('mouseenter', () => {
                 categoryItem.style.backgroundColor = '#f0f0f0';
-                categoryItem.style.borderRadius = '5px'; // Ecken abrunden
+                categoryItem.style.borderRadius = '5px';
                 categoryItem.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
                 subMenu.style.display = 'block';
             });
 
             categoryItem.addEventListener('mouseleave', () => {
                 categoryItem.style.backgroundColor = 'transparent';
-                categoryItem.style.borderRadius = '0'; // Ecken wieder gerade machen
                 subMenu.style.display = 'none';
             });
         }
@@ -173,12 +173,10 @@
 
             subMenuItem.addEventListener('mouseenter', () => {
                 subMenuItem.style.backgroundColor = '#f0f0f0';
-                subMenuItem.style.borderRadius = '5px'; // Ecken abrunden
             });
 
             subMenuItem.addEventListener('mouseleave', () => {
                 subMenuItem.style.backgroundColor = 'transparent';
-                subMenuItem.style.borderRadius = '0'; // Ecken wieder gerade machen
             });
 
             subMenuItem.addEventListener('click', () => {
