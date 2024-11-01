@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.10
+// @version      1.0.11
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -18,7 +18,7 @@
         cursor: 'pointer',
         borderRadius: '8px',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-        fontFamily: '"Roboto", "LocalRoboto", "Helvetica Neue", "Helvetica", "sans-serif"',
+        fontFamily: '"Aptos", "Helvetica Neue", "Helvetica", "sans-serif"',
         transition: 'all 0.2s ease'
     };
 
@@ -84,7 +84,6 @@
 
             const categoryItem = this.createElement('div', {
                 padding: '5px',
-                cursor: 'pointer',
                 position: 'relative',
                 borderBottom: index < this.menuData.length - 1 ? '1px solid #ddd' : ''
             }, category.label);
@@ -99,39 +98,40 @@
             const subMenu = this.createElement('div', {
                 ...COMMON_STYLES,
                 position: 'absolute',
+                padding: '3px',
                 bottom: '0',
                 left: '100%',
                 display: 'none',
                 width: '350px'
             });
 
-            items.forEach(snippet => {
+            items.forEach((snippet, index) => {
                 if (snippet && snippet.label) {
-                    subMenu.appendChild(this.createSubMenuItem(snippet));
+                    const isLastItem = index === items.length - 1;
+                    subMenu.appendChild(this.createSubMenuItem(snippet, isLastItem));
                 }
             });
 
             return subMenu;
         }
 
-        createSubMenuItem(snippet) {
+        createSubMenuItem(snippet, isLastItem) {
             const subMenuItem = this.createElement('div', {
                 padding: '5px',
                 cursor: 'pointer',
-                borderBottom: '1px solid #ddd'
+                borderBottom: isLastItem ? 'none' : '1px solid #ddd'
             }, snippet.label);
 
             this.attachSubMenuListeners(subMenuItem, snippet.text);
             return subMenuItem;
         }
 
+
         attachCategoryListeners(categoryItem, subMenu) {
             categoryItem.addEventListener('mouseenter', () => {
                 categoryItem.style.backgroundColor = '#f0f0f0';
-                subMenu.style.display = 'block';
                 categoryItem.style.transition = 'background-color 0.3s ease';
-                categoryItem.style.backgroundColor = '#f0f0f0';
-                this.adjustSubMenuPosition(categoryItem, subMenu);
+                subMenu.style.display = 'block';
             });
 
             categoryItem.addEventListener('mouseleave', () => {
@@ -154,19 +154,6 @@
             subMenuItem.addEventListener('click', () => {
                 this.handleClick(snippetText);
             });
-        }
-
-        adjustSubMenuPosition(categoryItem, subMenu) {
-            const categoryItemRect = categoryItem.getBoundingClientRect();
-            const subMenuRect = subMenu.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-
-            if (categoryItemRect.bottom + subMenuRect.height > viewportHeight) {
-                const newBottom = Math.max(0, viewportHeight - categoryItemRect.bottom);
-                subMenu.style.bottom = `${newBottom}px`;
-            } else {
-                subMenu.style.bottom = '0';
-            }
         }
 
         async getClipboardText() {
@@ -302,4 +289,3 @@
     contextMenuInstance = new ContextMenu();
 
 })();
-
