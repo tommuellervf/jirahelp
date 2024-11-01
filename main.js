@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.12
+// @version      1.0.13
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -98,10 +98,37 @@
                 ...COMMON_STYLES,
                 position: 'absolute',
                 padding: '2px',
-                bottom: '0',
                 left: '90%',
                 display: 'none',
-                width: '350px'
+                width: '350px',
+                zIndex: '11000',
+            });
+
+            const isMouseOverSubMenu = (event) => {
+                const rect = subMenu.getBoundingClientRect();
+                return (
+                    event.clientX >= rect.left &&
+                    event.clientX <= rect.right &&
+                    event.clientY >= rect.top &&
+                    event.clientY <= rect.bottom
+                );
+            };
+
+            const isMouseAtTop = (event) => {
+                const screenHeight = screen.height;
+                return event.screenY < screenHeight / 2;
+            };
+
+            window.addEventListener('mousemove', (event) => {
+                if (!isMouseOverSubMenu(event)) {
+                    if (isMouseAtTop(event)) {
+                        subMenu.style.top = '0';
+                        subMenu.style.bottom = '';
+                    } else {
+                        subMenu.style.top = '';
+                        subMenu.style.bottom = '0';
+                    }
+                }
             });
 
             items.forEach((snippet, index) => {
