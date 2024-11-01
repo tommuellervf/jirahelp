@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.7
+// @version      1.0.8
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -102,7 +102,8 @@
                 bottom: '0',
                 left: '100%',
                 display: 'none',
-                width: '350px'
+                width: '350px',
+                minHeight: '12px'
             });
 
             items.forEach(snippet => {
@@ -157,16 +158,24 @@
         }
 
         adjustSubMenuPosition(categoryItem, subMenu) {
-            const categoryItemRect = categoryItem.getBoundingClientRect();
-            const subMenuRect = subMenu.getBoundingClientRect();
+            const categoryRect = categoryItem.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
 
-            if (categoryItemRect.bottom + subMenuRect.height > viewportHeight) {
-                const newBottom = Math.max(0, viewportHeight - categoryItemRect.bottom);
-                subMenu.style.bottom = `${newBottom}px`;
-            } else {
-                subMenu.style.bottom = '0';
+            let leftPosition = categoryRect.width; 
+            let topPosition = -(subMenu.offsetHeight - categoryRect.height);
+
+            if (categoryRect.right + subMenu.offsetWidth > viewportWidth) {
+                leftPosition = -subMenu.offsetWidth;
             }
+
+            if (categoryRect.top + topPosition < 0) {
+                topPosition = 0;
+            }
+
+            subMenu.style.position = 'absolute';
+            subMenu.style.left = `${leftPosition}px`;
+            subMenu.style.top = `${topPosition}px`;
         }
 
         async getClipboardText() {
@@ -302,3 +311,4 @@
     contextMenuInstance = new ContextMenu();
 
 })();
+
