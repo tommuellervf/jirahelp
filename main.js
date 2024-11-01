@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.71
+// @version      1.0.7
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -156,30 +156,18 @@
             });
         }
 
-adjustSubMenuPosition(categoryItem, subMenu) {
-    const categoryItemRect = categoryItem.getBoundingClientRect();
-    const subMenuRect = subMenu.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
+        adjustSubMenuPosition(categoryItem, subMenu) {
+            const categoryItemRect = categoryItem.getBoundingClientRect();
+            const subMenuRect = subMenu.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
 
-    // Positioniere das Untermenü immer rechts neben dem Hauptmenüelement
-    subMenu.style.left = `${categoryItemRect.right}px`;
-
-    // Standardposition oben am Hauptmenüelement
-    subMenu.style.top = `${categoryItemRect.top}px`;
-
-    // Korrigiert die Position nach unten, falls das Untermenü unten aus dem sichtbaren Bereich herausragt
-    if (categoryItemRect.bottom + subMenuRect.height > viewportHeight) {
-        const newTop = Math.max(0, viewportHeight - subMenuRect.height - 5);
-        subMenu.style.top = `${newTop}px`;
-    }
-
-    // Falls das Menü rechts über das Fenster hinausgeht, setze es links vom Hauptmenüelement
-    if (categoryItemRect.right + subMenuRect.width > viewportWidth) {
-        subMenu.style.left = `${categoryItemRect.left - subMenuRect.width}px`;
-    }
-}
-
+            if (categoryItemRect.bottom + subMenuRect.height > viewportHeight) {
+                const newBottom = Math.max(0, viewportHeight - categoryItemRect.bottom);
+                subMenu.style.bottom = `${newBottom}px`;
+            } else {
+                subMenu.style.bottom = '0';
+            }
+        }
 
         async getClipboardText() {
             if (!navigator.clipboard || !navigator.clipboard.readText) {
