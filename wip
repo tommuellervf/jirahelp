@@ -397,24 +397,26 @@
 
 
         // Funktion zum Formatieren des Textes
-        formatText(text) {
-            // Ersetze Sterne durch <b> Tags
-            text = text.replace(/\*(.*?)\*/g, '<b>$1</b>');
+formatText(text) {
+    // Ersetze Sterne durch <b> Tags
+    text = text.replace(/\*(.*?)\*/g, '<b>$1</b>');
 
-            // Ersetze die Start-Color-Tags in <span> Tags
-            text = text.replace(/{color:(.*?)}/g, '<span style="color:$1;">');
+    // Ersetze die Start-Color-Tags in <span> Tags
+    text = text.replace(/{color:(.*?)}/g, '<span style="color:$1;">');
 
-            // Ersetze den schließenden Color-Tag in </span>
-            text = text.replace(/{color}/g, '</span>'); // Umwandlung von {color} in </span>
+    // Ersetze den schließenden Color-Tag in </span>
+    text = text.replace(/{color}/g, '</span>');
 
-            // Ersetze \n durch <br>
-            text = text.replace(/\n/g, '<br>');
+    // Ersetze \n durch <br>
+    text = text.replace(/\n/g, '<br>');
 
-            // Ersetze [~name] durch @name
-            text = text.replace(/\[~(.*?)\]/g, '@$1');
+    // Ersetze [~userID] durch JIRA-User-Mention-Link
+    text = text.replace(/\[~(.*?)\]/g, (match, userId) => {
+        return `<a class="user-hover" rel="${userId}" id="user_${userId}" href="/secure/ViewProfile.jspa?name=${userId}" data-username="${userId}">@${userId}</a>`;
+    });
 
-            return text;
-        }
+    return text;
+}
 
 
 
