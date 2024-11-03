@@ -353,13 +353,45 @@
             let textToInsert = snippetText;
 
             textToInsert = await this.replacePlaceholder(textToInsert);
-            // Überprüfen, ob wir im TinyMCE Rich-Text-Editor sind
-            if (this.isTinyMCE) {
 
-                textToInsert = this.formatText(textToInsert); // Textformatierung nur im Rich-Text-Editor
+            if (this.isTinyMCE) {
+                textToInsert = this.formatText(textToInsert);
+
+                // Füge den Text in den TinyMCE Editor ein
+                this.targetElement.insertContent(textToInsert);
+
+                // Warte kurz, bis der Content eingefügt ist
+                setTimeout(() => {
+                    // Suche nach dem NAME Element im Editor
+                    const body = this.targetElement.getBody();
+                    const walker = document.createTreeWalker(
+                        body,
+                        NodeFilter.SHOW_TEXT,
+                        null,
+                        false
+                    );
+
+                    let node;
+                    while (node = walker.nextNode()) {
+                        const position = node.nodeValue.indexOf('NAME');
+                        if (position !== -1) {
+                            // Erstelle einen Range für die Selektion
+                            const range = this.targetElement.dom.createRng();
+                            range.setStart(node, position);
+                            range.setEnd(node, position + 4); // 4 ist die Länge von "NAME"
+
+                            // Setze die Selektion
+                            this.targetElement.selection.setRng(range);
+                            break;
+                        }
+                    }
+                }, 100);
+
+                this.isTinyMCE = false;
+            } else {
+                this.insertText(this.targetElement, textToInsert);
             }
 
-            this.insertText(this.targetElement, textToInsert);
             this.menu.style.display = 'none';
         }
 
