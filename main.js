@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.20
+// @version      1.0.21
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -417,12 +417,13 @@
         }
 
         formatText(text) {
-            text = text.replace(/\*(.*?)\*/g, '<b>$1</b>');
+            text = text.replace(/\*([\s\S]*?)\*/g, '<b>$1</b>');
             text = text.replace(/{color:(.*?)}/g, '<span style="color:$1;">');
             text = text.replace(/{color}/g, '</span>');
             text = text.replace(/\n/g, '<br>');
             text = text.replace(/\[~(.*?)\]/g, (match, userId) => {
-                return `<a class="user-hover" rel="${userId}"id="user_${userId}" href="/secure/ViewProfile.jspa?name=${userId}"data-username="${userId}">@${userId}</a>`;});
+                return `<a class="user-hover" rel="${userId}"id="user_${userId}" href="/secure/ViewProfile.jspa?name=${userId}"data-username="${userId}">@${userId}</a>`;
+            });
 
             return text;
         }
