@@ -1,15 +1,61 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.16
+// @version      1.0.20
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
 // ==/UserScript==
+
 (function() {
     'use strict';
+
+    const processedFrames = new WeakSet();
+
+    function addTinyMCEHandler() {
+        const iframes = document.querySelectorAll('iframe.tox-edit-area__iframe');
+        iframes.forEach(iframe => {
+            if (!processedFrames.has(iframe) && iframe.contentDocument) {
+                const addListeners = () => { iframe.contentDocument.addEventListener('contextmenu', function(event) {
+
+                    event.preventDefault();
+                    const editor = tinymce.get(iframe.id.replace('_ifr', ''));
+                    if (editor && editor.initialized) {
+                        editor.focus();
+
+                        contextMenuInstance.menu.style.left = `${event.clientX}px`;
+                        contextMenuInstance.menu.style.top = `${event.clientY}px`;
+                        contextMenuInstance.menu.style.position = 'fixed';
+
+                        setTimeout(() => {
+                            contextMenuInstance.targetElement = editor;
+                            contextMenuInstance.isTinyMCE = true;
+                            contextMenuInstance.positionMenu(event, true);
+                        }, 170);
+                    }
+                });
+
+                                            iframe.contentDocument.addEventListener('click', function(event) {
+                                                contextMenuInstance.menu.style.transform = 'scale(0.9)';
+                                                contextMenuInstance.menu.style.opacity = '0';
+                                                setTimeout(() => {
+                                                    contextMenuInstance.menu.style.display = 'none';
+                                                }, 200);
+                                            });
+                                           };
+
+                if (iframe.contentDocument.readyState === 'complete') {
+                    addListeners();
+                } else {
+                    iframe.contentDocument.addEventListener('load', addListeners);
+                }
+
+                processedFrames.add(iframe);
+            }
+        });
+    }
 
     const COMMON_STYLES = {
         backgroundColor: '#ffffff',
@@ -18,13 +64,14 @@
         borderRadius: '8px',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
         fontFamily: '"Aptos", "Helvetica Neue", "Helvetica", "sans-serif"',
-        transition: 'all 0.2s ease-out'
+        //transition: 'all 0.2s ease-out'
     };
 
     class ContextMenu {
         constructor() {
             this.menuData = this.loadMenuData();
             this.targetElement = null;
+            this.isTinyMCE = false;
             this.menu = this.createMainMenu();
             this.boundHandleContextMenu = this.handleContextMenu.bind(this);
             this.boundHandleDocumentClick = this.handleDocumentClick.bind(this);
@@ -66,9 +113,8 @@
             });
 
             if (this.menuData && Array.isArray(this.menuData)) {
-                this.menuData.forEach((category, index) => {
-                    menu.appendChild(this.createCategoryItem(category, index));
-                });
+                this.menuData.forEach((category, index) => { menu.appendChild(this.createCategoryItem(category, index));
+                                                           });
             }
 
             document.body.appendChild(menu);
@@ -133,8 +179,7 @@
 
             items.forEach((snippet, index) => {
                 if (snippet && snippet.label) {
-                    const isLastItem = index === items.length - 1;
-                    subMenu.appendChild(this.createSubMenuItem(snippet, isLastItem));
+                    const isLastItem = index === items.length - 1; subMenu.appendChild(this.createSubMenuItem(snippet, isLastItem));
                 }
             });
 
@@ -184,7 +229,6 @@
             });
         }
 
-
         async getClipboardText() {
             if (!navigator.clipboard || !navigator.clipboard.readText) {
                 console.warn('Clipboard API not available');
@@ -210,13 +254,35 @@
 
             const csElement = document.getElementById("customfield_10200-val");
             const csValue = csElement?.innerText.trim() || '00000000';
-            return text.replace("%%CS", csValue);
+            text = text.replace("%%CS", csValue);
+
+            if (text.includes("%%ASSIGNEE")) {
+
+                const assigneeElement = document.querySelector('#assignee-val > span.user-hover-replaced[rel]');
+
+                if (assigneeElement) {
+                    const userId = assigneeElement.getAttribute('rel');
+
+                    if (userId) {
+                        text = text.replace("%%ASSIGNEE", `[~${userId}]`);
+                    } else
+                    {
+                        text = text.replace("%%ASSIGNEE", "NAME");
+                    }
+                } else {
+                    text = text.replace("%%ASSIGNEE", "NAME");
+                }
+            }
+
+            return text;
         }
 
-        insertText(elem, text) {
+        async insertText(elem, text) {
             if (!elem || !text) return;
 
-            if (elem.isContentEditable) {
+            if (this.isTinyMCE) {
+                elem.insertContent(text);
+                this.isTinyMCE = false;
                 document.execCommand("insertText", false, text);
             } else if (elem.tagName === 'INPUT' || elem.tagName === 'TEXTAREA') {
                 const startPos = elem.selectionStart;
@@ -233,17 +299,20 @@
         }
 
         initializeEventListeners() {
-            document.addEventListener('contextmenu', this.boundHandleContextMenu);
-            document.addEventListener('click', this.boundHandleDocumentClick);
+            document.addEventListener('contextmenu',
+                                      this.boundHandleContextMenu);
+            document.addEventListener('click',
+                                      this.boundHandleDocumentClick);
         }
 
         handleContextMenu(event) {
+
             const target = event.target;
             if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
                 event.preventDefault();
                 this.targetElement = target;
-
-                this.positionMenu(event);
+                this.isTinyMCE = false;
+                this.positionMenu(event, true);
 
                 this.menu.style.visibility = 'visible';
                 this.menu.style.display = 'block';
@@ -252,7 +321,7 @@
             }
         }
 
-        positionMenu(event) {
+        positionMenu(event, useFixed = false) {
             if (!event) return;
 
             this.menu.style.display = 'block';
@@ -260,14 +329,28 @@
             this.menu.style.transform = 'scale(0.9)';
             this.menu.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.1)';
 
-            const { pageX, pageY } = event;
+            this.menu.style.position = 'fixed';
+
+            let clickX = event.clientX;
+            let clickY = event.clientY;
+
+            if (event.target.ownerDocument !== document) {
+                const iframe =
+                      event.target.ownerDocument.defaultView.frameElement;
+                const iframeRect = iframe.getBoundingClientRect();
+                clickX = event.clientX + iframeRect.left;
+                clickY = event.clientY + iframeRect.top;
+            }
+
             const { offsetHeight, offsetWidth } = this.menu;
             const { innerHeight, innerWidth } = window;
 
-            const top = pageY + offsetHeight > innerHeight ?
-                  innerHeight - offsetHeight - 5 : pageY;
-            const left = pageX + offsetWidth > innerWidth ?
-                  innerWidth - offsetWidth - 5 : pageX;
+            const top = (clickY + offsetHeight > innerHeight)
+            ? innerHeight - offsetHeight - 5
+            : clickY;
+            const left = (clickX + offsetWidth > innerWidth)
+            ? innerWidth - offsetWidth - 5
+            : clickX;
 
             this.menu.style.top = `${top}px`;
             this.menu.style.left = `${left}px`;
@@ -291,15 +374,64 @@
         }
 
         async handleClick(snippetText) {
-            const textToInsert = await this.replacePlaceholder(snippetText);
-            this.insertText(this.targetElement, textToInsert);
+
+            let textToInsert = snippetText;
+
+            textToInsert = await this.replacePlaceholder(textToInsert);
+
+            if (this.isTinyMCE) {
+                textToInsert = this.formatText(textToInsert);
+
+                this.targetElement.insertContent(textToInsert);
+
+
+                setTimeout(() => {
+                    const body = this.targetElement.getBody();
+                    const walker = document.createTreeWalker(
+                        body,
+                        NodeFilter.SHOW_TEXT,
+                        null,
+                        false
+                    );
+
+                    let node;
+                    while (node = walker.nextNode()) {
+                        const position = node.nodeValue.indexOf('NAME');
+                        if (position !== -1) {
+                            const range = this.targetElement.dom.createRng();
+                            range.setStart(node, position);
+                            range.setEnd(node, position + 4);
+
+                            this.targetElement.selection.setRng(range);
+                            break;
+                        }
+                    }
+                }, 100);
+
+                this.isTinyMCE = false;
+            } else {
+                this.insertText(this.targetElement, textToInsert);
+            }
+
             this.menu.style.display = 'none';
         }
 
-        destroy() {
+        formatText(text) {
+            text = text.replace(/\*(.*?)\*/g, '<b>$1</b>');
+            text = text.replace(/{color:(.*?)}/g, '<span style="color:$1;">');
+            text = text.replace(/{color}/g, '</span>');
+            text = text.replace(/\n/g, '<br>');
+            text = text.replace(/\[~(.*?)\]/g, (match, userId) => {
+                return `<a class="user-hover" rel="${userId}"id="user_${userId}" href="/secure/ViewProfile.jspa?name=${userId}"data-username="${userId}">@${userId}</a>`;});
 
-            document.removeEventListener('contextmenu', this.boundHandleContextMenu);
-            document.removeEventListener('click', this.boundHandleDocumentClick);
+            return text;
+        }
+
+        destroy() {
+            document.removeEventListener('contextmenu',
+                                         this.boundHandleContextMenu);
+            document.removeEventListener('click',
+                                         this.boundHandleDocumentClick);
 
             if (this.menu && this.menu.parentNode) {
                 this.menu.parentNode.removeChild(this.menu);
@@ -316,5 +448,13 @@
     });
 
     contextMenuInstance = new ContextMenu();
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', addTinyMCEHandler);
+    } else {
+        addTinyMCEHandler();
+    }
+
+    setInterval(addTinyMCEHandler, 500);
 
 })();
