@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.21
+// @version      1.0.22
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -161,8 +161,10 @@
             };
 
             const isMouseAtTop = (event) => {
-                const screenHeight = screen.height;
-                return event.screenY < screenHeight / 2;
+                const mouseY = event.clientY;
+                const windowHeight = window.innerHeight;
+
+                return mouseY < windowHeight / 2;
             };
 
             window.addEventListener('mousemove', (event) => {
@@ -197,7 +199,6 @@
             this.attachSubMenuListeners(subMenuItem, snippet.text);
             return subMenuItem;
         }
-
 
         attachCategoryListeners(categoryItem, subMenu) {
             categoryItem.addEventListener('mouseenter', () => {
