@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.22
+// @version      1.0.23
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -64,7 +64,6 @@
         borderRadius: '8px',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
         fontFamily: '"Aptos", "Helvetica Neue", "Helvetica", "sans-serif"',
-        //transition: 'all 0.2s ease-out'
     };
 
     class ContextMenu {
@@ -192,7 +191,6 @@
             const subMenuItem = this.createElement('div', {
                 padding: '5px',
                 cursor: 'pointer',
-                borderRadius: '5px',
                 borderBottom: isLastItem ? 'none' : '1px solid #ddd'
             }, snippet.label);
 
@@ -210,6 +208,7 @@
 
             categoryItem.addEventListener('mouseleave', () => {
                 categoryItem.style.backgroundColor = 'transparent';
+                categoryItem.style.borderRadius = '0px';
                 subMenu.style.display = 'none';
             });
         }
@@ -219,10 +218,12 @@
 
             subMenuItem.addEventListener('mouseenter', () => {
                 subMenuItem.style.backgroundColor = '#f0f0f0';
+                subMenuItem.style.borderRadius = '5px';
             });
 
             subMenuItem.addEventListener('mouseleave', () => {
                 subMenuItem.style.backgroundColor = 'transparent';
+                subMenuItem.style.borderRadius = '0px';
             });
 
             subMenuItem.addEventListener('click', () => {
