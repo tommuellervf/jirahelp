@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript zum entfernen der Wiki Page Links in Jira
 // @namespace    none
-// @version      1.0.2
+// @version      1.0.3
 // @description  Entfernt Wiki Page Links in Jira
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
