@@ -5,8 +5,8 @@
 // @description  Entfernt Wiki Page Links in Jira
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
-// @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/RemoveWikiPage.js
-// @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/RemoveWikiPage.js
+// @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/RemoveWikiPage
+// @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/RemoveWikiPage
 // ==/UserScript==
 
 (function() {
