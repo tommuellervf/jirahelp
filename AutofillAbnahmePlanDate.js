@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Autofill Abnahme Plan
 // @namespace    none
-// @version      1.0.2
+// @version      1.0.3
 // @description  Füllt Abnahme Plan Datum
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillAbnahmePlanDate.js
@@ -54,9 +54,11 @@
       fillCustomField(newDate);
       selectDropdownOption();
 
-      const datePickerDialog = document.querySelector('#date-picker8');
-      if (datePickerDialog) {
-        datePickerDialog.remove();
+      for (let i = 0; i <= 20; i++) {
+        const datePickerDialog = document.getElementById(`date-picker${i}`);
+        if (datePickerDialog) {
+          datePickerDialog.remove();
+        }
       }
     }
   }
