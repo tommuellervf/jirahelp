@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Autofill Bauleiter
 // @namespace    none
-// @version      1.0.2
+// @version      1.0.3
 // @description  Autofill Bauleiter
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillBauleiter.js
@@ -13,9 +13,9 @@
     'use strict';
 
     function getBearbeiterName() {
-        const parentElement = document.getElementById('assignee-val'); // Using the parent element's ID
+        const parentElement = document.getElementById('assignee-val');
         if (parentElement) {
-            const spanElement = parentElement.querySelector('span.user-hover.user-hover-replaced'); // Using the span element's classes
+            const spanElement = parentElement.querySelector('span.user-hover.user-hover-replaced');
             if (spanElement) {
                 const nameTextNode = Array.from(spanElement.childNodes)
                 .find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '');
