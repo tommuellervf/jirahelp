@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Autofill SAP Request
 // @namespace    none
-// @version      1.0.1
+// @version      1.0.2
 // @description  Füllt die SAP Nummer holen
-// @include      https://nd-jira.unity.media.corp/*
+// @include      https://nd-jira.unity.media.corp/browse/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillSAPRequest.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillSAPRequest.js
 // @grant        GM.xmlHttpRequest
