@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Autofill Abnahme Plan
 // @namespace    none
-// @version      1.0.3
+// @version      1.0.4
 // @description  Füllt Abnahme Plan Datum
-// @include      https://nd-jira.unity.media.corp/*
+// @include      https://nd-jira.unity.media.corp/browse/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillAbnahmePlanDate.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillAbnahmePlanDate.js
 // @grant        GM.xmlHttpRequest
