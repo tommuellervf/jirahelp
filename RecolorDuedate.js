@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Recolor Duedate
 // @namespace    none
-// @version      1.0.1
+// @version      1.0.2
 // @description  Recolor Duedate
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/RecolorDuedate.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/RecolorDuedate.js
 // @grant        GM.xmlHttpRequest
 // @grant        GM_addStyle
+// @noframes
 // ==/UserScript==
 
 (function() {
