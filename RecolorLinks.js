@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Hauptskript zum ändern der Farbe der Links in Jira
 // @namespace    none
-// @version      1.0.0
+// @version      1.0.1
 // @description  Ändert Farbe der Links in Jira
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/RecolorLinks.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/RecolorLinks.js
 // @grant        GM_addStyle
+// @noframes
 // ==/UserScript==
 
 (function() {
