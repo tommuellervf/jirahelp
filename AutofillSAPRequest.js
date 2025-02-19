@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Autofill SAP Request
 // @namespace    none
-// @version      1.0.3
+// @version      1.0.4
 // @description  Füllt die SAP Nummer holen
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillSAPRequest.js
@@ -53,32 +53,59 @@
         }
     }
 
-    function initializeObserver() {
-        const targetNode = document.body;
-        const config = { childList: true, subtree: true };
+    function attemptFillFormFields(maxAttempts = 10, delay = 500, currentAttempt = 1) {
+        const formFields = [
+            'select#customfield_17300',
+            'select#customfield_17301',
+            '#customfield_14200',
+            '#customfield_18201',
+            '#customfield_18202',
+            '#customfield_18203'
+        ];
+        const allFieldsPresent = formFields.every(selector => document.querySelector(selector));
 
-        const callback = function(mutationsList, observer) {
-            for (const mutation of mutationsList) {
-                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    const dialogElement = document.getElementById('workflow-transition-151-dialog');
-                    if (dialogElement) {
-                        observer.disconnect();
-                        setTimeout(fillFormFields, 500);
-                        break;
-                    }
-                }
-            }
-        };
-
-        const observer = new MutationObserver(callback);
-        observer.observe(targetNode, config);
+        if (allFieldsPresent) {
+            fillFormFields();
+        } else if (currentAttempt <= maxAttempts) {
+            setTimeout(() => {
+                attemptFillFormFields(maxAttempts, delay, currentAttempt + 1);
+            }, delay);
+        } else {
+            console.warn('Autofill SAP Request: Form fields not found after multiple attempts.');
+        }
     }
 
-    initializeObserver();
+    function initialize() {
+        const dialogElement = document.getElementById('workflow-transition-151-dialog');
+        if (dialogElement) {
+            attemptFillFormFields();
+        } else {
+            const targetNode = document.body;
+            const config = { childList: true, subtree: true };
+
+            const callback = function(mutationsList, observer) {
+                for (const mutation of mutationsList) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        const dialogElement = document.getElementById('workflow-transition-151-dialog');
+                        if (dialogElement) {
+                            observer.disconnect();
+                            attemptFillFormFields();
+                            break;
+                        }
+                    }
+                }
+            };
+
+            const observer = new MutationObserver(callback);
+            observer.observe(targetNode, config);
+        }
+    }
+
+    initialize();
 
     document.addEventListener('click', function(event) {
         if (event.target.id === 'issue-workflow-transition-cancel') {
-            initializeObserver();
+            initialize();
         }
     });
 })();
