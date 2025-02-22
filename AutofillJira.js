@@ -103,27 +103,18 @@
             const inputField1 = document.querySelector('#customfield_12302-field');
             const inputField2 = document.querySelector('#customfield_12303-field');
             const bearbeiterName = getBearbeiterName();
-    
             if (inputField1 && inputField2 && bearbeiterName) {
-                // Erstes Feld füllen
-                inputField1.value = bearbeiterName;
-                dispatchCustomEvent(inputField1, 'input');
-                
-                // Tab drücken und auf Reaktion warten
-                inputField1.dispatchEvent(new KeyboardEvent('keydown', { 
-                    key: 'Tab', code: 'Tab', keyCode: 9, which: 9, bubbles: true, cancelable: true 
-                }));
-                
-                // Warten auf zweites Feld
+                if (inputField1.value !== bearbeiterName) {
+                    inputField1.value = bearbeiterName;
+                    dispatchCustomEvent(inputField1, 'input');
+                    inputField1.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, which: 9, bubbles: true, cancelable: true }));
+                }
                 await waitForField('#customfield_12303-field');
-                
-                // Zweites Feld füllen
-                inputField2.value = bearbeiterName;
-                dispatchCustomEvent(inputField2, 'input');
-                
-                inputField2.dispatchEvent(new KeyboardEvent('keydown', { 
-                    key: 'Tab', code: 'Tab', keyCode: 9, which: 9, bubbles: true, cancelable: true 
-                }));
+                if (inputField2.value !== bearbeiterName) {
+                    inputField2.value = bearbeiterName;
+                    dispatchCustomEvent(inputField2, 'input');
+                    inputField2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, which: 9, bubbles: true, cancelable: true }));
+                }
             }
         } catch (error) {
             console.warn('Fehler beim Ausfüllen der Bauleiter-Felder:', error);
