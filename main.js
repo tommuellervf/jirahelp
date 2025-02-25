@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.24
+// @version      1.0.25
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -64,7 +64,7 @@
         cursor: 'pointer',
         borderRadius: '8px',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-        fontFamily: '"Aptos", "Helvetica Neue", "Helvetica", "sans-serif"',
+        fontFamily: '"-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif"',
     };
 
     class ContextMenu {
@@ -201,7 +201,7 @@
 
         attachCategoryListeners(categoryItem, subMenu) {
             categoryItem.addEventListener('mouseenter', () => {
-                categoryItem.style.backgroundColor = '#f0f0f0';
+                categoryItem.style.backgroundColor = '#ECEDF0';
                 categoryItem.style.borderRadius = '5px';
                 categoryItem.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
                 subMenu.style.display = 'block';
@@ -218,7 +218,7 @@
             if (!subMenuItem || !snippetText) return;
 
             subMenuItem.addEventListener('mouseenter', () => {
-                subMenuItem.style.backgroundColor = '#f0f0f0';
+                subMenuItem.style.backgroundColor = '#ECEDF0';
                 subMenuItem.style.borderRadius = '5px';
             });
 
