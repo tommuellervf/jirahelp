@@ -1,16 +1,17 @@
 // ==UserScript==
-// @name         PopulatePB
+// @name         PopulatePB with Map Alert
 // @namespace    none
-// @version      1.0.0
-// @description  Adressdaten aus Jira nach PB übertragen
+// @version      1.0.2
+// @description  Address data from Jira to PB and reload on map alert.
 // @include      https://nd-jira.unity.media.corp/*
 // @include      https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
 // @grant        GM.setValue
 // @grant        GM.getValue
 // @noframes
+// @run-at       document-idle
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
 
     const elementIds = ['customfield_14413-val', 'customfield_13702-val', 'customfield_13700-val'];
@@ -29,10 +30,10 @@
         let allFieldsPopulated = true;
         for (const fieldName in fieldSelectors) {
             let fieldSelector = fieldSelectors[fieldName];
-            if(fieldName === 'zip_code' && !document.querySelector(fieldSelector)){
+            if (fieldName === 'zip_code' && !document.querySelector(fieldSelector)) {
                 fieldSelector = '[name="zip_code"]';
             }
-            if(fieldName === 'street_name' && !document.querySelector(fieldSelector)){
+            if (fieldName === 'street_name' && !document.querySelector(fieldSelector)) {
                 fieldSelector = '[name="street_name"]';
             }
             const field = document.querySelector(fieldSelector);
@@ -54,10 +55,10 @@
     function areAllFieldsPresent() {
         for (const fieldName in fieldSelectors) {
             let fieldSelector = fieldSelectors[fieldName];
-            if(fieldName === 'zip_code' && !document.querySelector(fieldSelector)){
+            if (fieldName === 'zip_code' && !document.querySelector(fieldSelector)) {
                 fieldSelector = '[name="zip_code"]';
             }
-            if(fieldName === 'street_name' && !document.querySelector(fieldSelector)){
+            if (fieldName === 'street_name' && !document.querySelector(fieldSelector)) {
                 fieldSelector = '[name="street_name"]';
             }
             const field = document.querySelector(fieldSelector);
@@ -98,7 +99,29 @@
         }
     }
 
+    const targetSelector = 'div#map-alert';
+
+    const checkAndReload = () => {
+        const targetElement = document.querySelector(targetSelector);
+        if (!targetElement) {
+            console.error('Target element not found!');
+            return;
+        }
+        console.log('checking visibility');
+        const isVisible = targetElement.offsetParent !== null && window.getComputedStyle(targetElement).visibility !== 'hidden';
+
+        if (isVisible) {
+            console.log('Map alert is visible. Reloading page...');
+            location.reload();
+        }
+    };
+
     if (window.location.href.includes('https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html')) {
+        console.log("PopulatePB script running");
+
+        (document.readyState === 'complete' || document.readyState === 'interactive' ? checkAndReload : window.addEventListener('DOMContentLoaded', checkAndReload));
+
+        setInterval(checkAndReload, 1000);
 
         function waitForElement(selector) {
             return new Promise(resolve => {
@@ -128,7 +151,6 @@
                 console.error('Not enough layer-visibility elements found.');
             }
         });
-
 
         GM.getValue('customFieldValues').then((values) => {
             if (values) {
