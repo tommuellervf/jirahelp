@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PopulatePB with Map Alert
 // @namespace    none
-// @version      1.0.2
+// @version      1.0.4
 // @description  Address data from Jira to PB and reload on map alert.
 // @include      https://nd-jira.unity.media.corp/*
 // @include      https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
@@ -103,17 +103,8 @@
 
     const checkAndReload = () => {
         const targetElement = document.querySelector(targetSelector);
-        if (!targetElement) {
-            console.error('Target element not found!');
-            return;
-        }
-        console.log('checking visibility');
         const isVisible = targetElement.offsetParent !== null && window.getComputedStyle(targetElement).visibility !== 'hidden';
-
-        if (isVisible) {
-            console.log('Map alert is visible. Reloading page...');
-            location.reload();
-        }
+        const hasTargetText = targetElement.textContent.includes("Nicht authentifizierter Zugriff auf Kartendaten.");
     };
 
     if (window.location.href.includes('https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html')) {
