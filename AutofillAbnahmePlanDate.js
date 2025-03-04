@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Autofill Abnahme Plan, Abnahme & Abschluss Dates
 // @namespace    none
-// @version      1.0.8
+// @version      1.0.9
 // @description  Füllt Abnahme Plan Datum, Abnahme Datum & Abschluss Daten
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillAbnahmePlanDate.js
@@ -87,6 +87,7 @@
             if (newDate) {
                 fillCustomField('#customfield_13602', newDate);
                 selectDropdownOption();
+                removeDatePickerDialogs();
             }
         }
     }
@@ -160,7 +161,6 @@
                 if (dialog221) {
                     waitForElements(['#issue-workflow-transition-submit'], form => {
                         handleDialog('#workflow-transition-221-dialog', fillTransition221Dialog, () => { });
-                        removeDatePickerDialogs();
                     });
 
                 }
