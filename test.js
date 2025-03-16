@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü Test
 // @namespace    none
-// @version      1.0.27
+// @version      1.0.28
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      *
 // @grant        GM.xmlHttpRequest
