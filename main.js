@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.25
+// @version      1.0.26
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -19,33 +19,31 @@
         const iframes = document.querySelectorAll('iframe.tox-edit-area__iframe');
         iframes.forEach(iframe => {
             if (!processedFrames.has(iframe) && iframe.contentDocument) {
-                const addListeners = () => { iframe.contentDocument.addEventListener('contextmenu', function(event) {
+                const addListeners = () => {
+                    iframe.contentDocument.addEventListener('contextmenu', function(event) {
+                        event.preventDefault();
+                        const editor = tinymce.get(iframe.id.replace('_ifr', ''));
+                        if (editor && editor.initialized) {
+                            editor.focus();
+                            contextMenuInstance.menu.style.left = `${event.clientX}px`;
+                            contextMenuInstance.menu.style.top = `${event.clientY}px`;
+                            contextMenuInstance.menu.style.position = 'fixed';
+                            setTimeout(() => {
+                                contextMenuInstance.targetElement = editor;
+                                contextMenuInstance.isTinyMCE = true;
+                                contextMenuInstance.positionMenu(event, true);
+                            }, 170);
+                        }
+                    });
 
-                    event.preventDefault();
-                    const editor = tinymce.get(iframe.id.replace('_ifr', ''));
-                    if (editor && editor.initialized) {
-                        editor.focus();
-
-                        contextMenuInstance.menu.style.left = `${event.clientX}px`;
-                        contextMenuInstance.menu.style.top = `${event.clientY}px`;
-                        contextMenuInstance.menu.style.position = 'fixed';
-
+                    iframe.contentDocument.addEventListener('click', function() {
+                        contextMenuInstance.menu.style.transform = 'scale(0.9)';
+                        contextMenuInstance.menu.style.opacity = '0';
                         setTimeout(() => {
-                            contextMenuInstance.targetElement = editor;
-                            contextMenuInstance.isTinyMCE = true;
-                            contextMenuInstance.positionMenu(event, true);
-                        }, 170);
-                    }
-                });
-
-                                            iframe.contentDocument.addEventListener('click', function(event) {
-                                                contextMenuInstance.menu.style.transform = 'scale(0.9)';
-                                                contextMenuInstance.menu.style.opacity = '0';
-                                                setTimeout(() => {
-                                                    contextMenuInstance.menu.style.display = 'none';
-                                                }, 200);
-                                            });
-                                           };
+                            contextMenuInstance.menu.style.display = 'none';
+                        }, 200);
+                    });
+                };
 
                 if (iframe.contentDocument.readyState === 'complete') {
                     addListeners();
@@ -89,13 +87,6 @@
         }
 
         createElement(tag, styles, innerText = '') {
-            if (!tag || typeof tag !== 'string') {
-                throw new Error('Invalid tag parameter');
-            }
-            if (!styles || typeof styles !== 'object') {
-                throw new Error('Invalid styles parameter');
-            }
-
             const element = document.createElement(tag);
             Object.assign(element.style, styles);
             if (innerText) element.innerText = innerText;
@@ -112,9 +103,10 @@
                 width: '200px'
             });
 
-            if (this.menuData && Array.isArray(this.menuData)) {
-                this.menuData.forEach((category, index) => { menu.appendChild(this.createCategoryItem(category, index));
-                                                           });
+            if (Array.isArray(this.menuData)) {
+                this.menuData.forEach((category, index) => {
+                    menu.appendChild(this.createCategoryItem(category, index));
+                });
             }
 
             document.body.appendChild(menu);
@@ -122,11 +114,6 @@
         }
 
         createCategoryItem(category, index) {
-            if (!category || !category.label) {
-                console.error('Invalid category data:', category);
-                return document.createElement('div');
-            }
-
             const categoryItem = this.createElement('div', {
                 padding: '5px',
                 position: 'relative',
@@ -162,240 +149,20 @@
 
             const isMouseAtTop = (event) => {
                 const mouseY = event.clientY;
-                const windowHeight = window.innerHeight;
-
-                return mouseY < windowHeight / 2;
-            };
-
-            window.addEventListener('mousemove', (event) => {
-                if (!isMouseOverSubMenu(event)) {
-                    if (isMouseAtTop(event)) {
-                        subMenu.style.top = '0';
-                        subMenu.style.bottom = '';
-                    } else {
-                        subMenu.style.top = '';
-                        subMenu.style.bottom = '0';
-                    }
-                }
-            });
-
-            items.forEach((snippet, index) => {
-                if (snippet && snippet.label) {
-                    const isLastItem = index === items.length - 1; subMenu.appendChild(this.createSubMenuItem(snippet, isLastItem));
-                }
-            });
-
-            return subMenu;
-        }
-
-        createSubMenuItem(snippet, isLastItem) {
-            const subMenuItem = this.createElement('div', {
-                padding: '5px',
-                cursor: 'pointer',
-                borderBottom: isLastItem ? 'none' : '1px solid #ddd'
-            }, snippet.label);
-
-            this.attachSubMenuListeners(subMenuItem, snippet.text);
-            return subMenuItem;
-        }
-
-        attachCategoryListeners(categoryItem, subMenu) {
-            categoryItem.addEventListener('mouseenter', () => {
-                categoryItem.style.backgroundColor = '#ECEDF0';
-                categoryItem.style.borderRadius = '5px';
-                categoryItem.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
-                subMenu.style.display = 'block';
-            });
-
-            categoryItem.addEventListener('mouseleave', () => {
-                categoryItem.style.backgroundColor = 'transparent';
-                categoryItem.style.borderRadius = '0px';
-                subMenu.style.display = 'none';
-            });
-        }
-
-        attachSubMenuListeners(subMenuItem, snippetText) {
-            if (!subMenuItem || !snippetText) return;
-
-            subMenuItem.addEventListener('mouseenter', () => {
-                subMenuItem.style.backgroundColor = '#ECEDF0';
-                subMenuItem.style.borderRadius = '5px';
-            });
-
-            subMenuItem.addEventListener('mouseleave', () => {
-                subMenuItem.style.backgroundColor = 'transparent';
-                subMenuItem.style.borderRadius = '0px';
-            });
-
-            subMenuItem.addEventListener('click', () => {
-                this.handleClick(snippetText);
-            });
-        }
-
-        async getClipboardText() {
-            if (!navigator.clipboard || !navigator.clipboard.readText) {
-                console.warn('Clipboard API not available');
-                return '00000000';
-            }
-
-            try {
-                const text = await navigator.clipboard.readText();
-                return /^[\d\-\/]+$/.test(text) ? text : '00000000';
-            } catch (err) {
-                console.error('Failed to read clipboard contents: ', err);
-                return '00000000';
-            }
-        }
-
-        async replacePlaceholder(text) {
-            if (!text) return '';
-
-            if (text.includes("%%t")) {
-                const clipboardText = await this.getClipboardText();
-                text = text.replace("%%t", clipboardText);
-            }
-
-            const csElement = document.getElementById("customfield_10200-val");
-            const csValue = csElement?.innerText.trim() || '00000000';
-            text = text.replace("%%CS", csValue);
-
-            if (text.includes("%%ASSIGNEE")) {
-
-                const assigneeElement = document.querySelector('#assignee-val > span.user-hover-replaced[rel]');
-
-                if (assigneeElement) {
-                    const userId = assigneeElement.getAttribute('rel');
-
-                    if (userId) {
-                        text = text.replace("%%ASSIGNEE", `[~${userId}]`);
-                    } else
-                    {
-                        text = text.replace("%%ASSIGNEE", "NAME");
-                    }
-                } else {
-                    text = text.replace("%%ASSIGNEE", "NAME");
-                }
-            }
-
-            return text;
-        }
-
-        async insertText(elem, text) {
-            if (!elem || !text) return;
-
-            if (this.isTinyMCE) {
-                elem.insertContent(text);
-                this.isTinyMCE = false;
-                document.execCommand("insertText", false, text);
-            } else if (elem.tagName === 'INPUT' || elem.tagName === 'TEXTAREA') {
-                const startPos = elem.selectionStart;
-                elem.value = elem.value.slice(0, startPos) + text + elem.value.slice(elem.selectionEnd);
-                elem.selectionStart = elem.selectionEnd = startPos + text.length;
-
-                const startMarkPos = startPos + text.indexOf("NAME");
-                if (startMarkPos !== -1) {
-                    elem.selectionStart = startMarkPos;
-                    elem.selectionEnd = startMarkPos + "NAME".length;
-                }
-            }
-            elem.focus();
-        }
-
-        initializeEventListeners() {
-            document.addEventListener('contextmenu',
-                                      this.boundHandleContextMenu);
-            document.addEventListener('click',
-                                      this.boundHandleDocumentClick);
-        }
-
-        handleContextMenu(event) {
-
-            const target = event.target;
-            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-                event.preventDefault();
-                this.targetElement = target;
-                this.isTinyMCE = false;
-                this.positionMenu(event, true);
-
-                this.menu.style.visibility = 'visible';
-                this.menu.style.display = 'block';
-                this.menu.style.opacity = '1';
-                this.menu.style.transform = 'scale(1)';
-            }
-        }
-
-        positionMenu(event, useFixed = false) {
-            if (!event) return;
-
-            this.menu.style.display = 'block';
-            this.menu.style.opacity = '0';
-            this.menu.style.transform = 'scale(0.9)';
-            this.menu.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.1)';
-
-            this.menu.style.position = 'fixed';
-
-            let clickX = event.clientX;
-            let clickY = event.clientY;
-
-            if (event.target.ownerDocument !== document) {
-                const iframe =
-                      event.target.ownerDocument.defaultView.frameElement;
-                const iframeRect = iframe.getBoundingClientRect();
-                clickX = event.clientX + iframeRect.left;
-                clickY = event.clientY + iframeRect.top;
-            }
-
-            const { offsetHeight, offsetWidth } = this.menu;
-            const { innerHeight, innerWidth } = window;
-
-            const top = (clickY + offsetHeight > innerHeight)
-            ? innerHeight - offsetHeight - 5
-            : clickY;
-            const left = (clickX + offsetWidth > innerWidth)
-            ? innerWidth - offsetWidth - 5
-            : clickX;
-
-            this.menu.style.top = `${top}px`;
-            this.menu.style.left = `${left}px`;
-
-            setTimeout(() => {
-                this.menu.style.opacity = '1';
-                this.menu.style.transform = 'scale(1)';
-                this.menu.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.15)';
-            }, 0);
-        }
-
-        handleDocumentClick(event) {
-            if (!this.menu.contains(event.target)) {
-                this.menu.style.transform = 'scale(0.9)';
-                this.menu.style.opacity = '0';
-
-                setTimeout(() => {
-                    this.menu.style.display = 'none';
                 }, 200);
             }
         }
 
         async handleClick(snippetText) {
-
-            let textToInsert = snippetText;
-
-            textToInsert = await this.replacePlaceholder(textToInsert);
+            let textToInsert = await this.replacePlaceholder(snippetText);
 
             if (this.isTinyMCE) {
                 textToInsert = this.formatText(textToInsert);
-
                 this.targetElement.insertContent(textToInsert);
-
 
                 setTimeout(() => {
                     const body = this.targetElement.getBody();
-                    const walker = document.createTreeWalker(
-                        body,
-                        NodeFilter.SHOW_TEXT,
-                        null,
-                        false
-                    );
+                    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, null, false);
 
                     let node;
                     while (node = walker.nextNode()) {
@@ -404,7 +171,6 @@
                             const range = this.targetElement.dom.createRng();
                             range.setStart(node, position);
                             range.setEnd(node, position + 4);
-
                             this.targetElement.selection.setRng(range);
                             break;
                         }
@@ -420,22 +186,17 @@
         }
 
         formatText(text) {
-            text = text.replace(/\*([\s\S]*?)\*/g, '<b>$1</b>');
-            text = text.replace(/{color:(.*?)}/g, '<span style="color:$1;">');
-            text = text.replace(/{color}/g, '</span>');
-            text = text.replace(/\n/g, '<br>');
-            text = text.replace(/\[~(.*?)\]/g, (match, userId) => {
-                return `<a class="user-hover" rel="${userId}"id="user_${userId}" href="/secure/ViewProfile.jspa?name=${userId}"data-username="${userId}">@${userId}</a>`;
-            });
-
-            return text;
+            return text
+                .replace(/\*([\s\S]*?)\*/g, '<b>$1</b>')
+                .replace(/{color:(.*?)}/g, '<span style="color:$1;">')
+                .replace(/{color}/g, '</span>')
+                .replace(/\n/g, '<br>')
+                .replace(/\[~(.*?)\]/g, (match, userId) => `<a class="user-hover" rel="${userId}" id="user_${userId}" href="/secure/ViewProfile.jspa?name=${userId}" data-username="${userId}">@${userId}</a>`);
         }
 
         destroy() {
-            document.removeEventListener('contextmenu',
-                                         this.boundHandleContextMenu);
-            document.removeEventListener('click',
-                                         this.boundHandleDocumentClick);
+            document.removeEventListener('contextmenu', this.boundHandleContextMenu);
+            document.removeEventListener('click', this.boundHandleDocumentClick);
 
             if (this.menu && this.menu.parentNode) {
                 this.menu.parentNode.removeChild(this.menu);
