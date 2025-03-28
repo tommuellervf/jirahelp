@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Zuweisung Link abfangen und prüfen
 // @namespace    none
-// @version      1.1.2
+// @version      1.1.3
 // @description  Prüfung, ob Maßnahme bereits zugewiesen ist.
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/test.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/test.js
@@ -37,8 +37,10 @@
             overlay.style.left = '0';
             overlay.style.width = '100%';
             overlay.style.height = '100%';
-            overlay.style.background = 'linear-gradient(135deg, #1e3c72, #2a5298)'; // Farbverlauf wie in der Grafik
-            overlay.style.opacity = '0.9'; // Leicht transparenter Overlay-Hintergrund
+            // Farbverlauf mit Browser-Präfixen für maximale Kompatibilität
+            overlay.style.background = '-webkit-linear-gradient(135deg, #1e3c72, #2a5298)'; // Für ältere Webkit-Browser
+            overlay.style.background = '-moz-linear-gradient(135deg, #1e3c72, #2a5298)'; // Für ältere Firefox-Versionen
+            overlay.style.background = 'linear-gradient(135deg, #1e3c72, #2a5298)'; // Standard-Syntax
             overlay.style.zIndex = '9999';
             document.body.appendChild(overlay);
 
@@ -49,7 +51,7 @@
             modal.style.left = '50%';
             modal.style.transform = 'translate(-50%, -50%)';
             modal.style.background = 'rgba(0, 0, 0, 0.7)'; // Halbtransparenter Hintergrund
-            modal.style.backdropFilter = 'blur(5px)'; // Optional: Weichzeichner-Effekt für den Hintergrund
+            modal.style.backdropFilter = 'blur(5px)'; // Optional: Weichzeichner-Effekt
             modal.style.borderRadius = '15px'; // Abgerundete Ecken
             modal.style.padding = '20px';
             modal.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)'; // Leichter Schatten
