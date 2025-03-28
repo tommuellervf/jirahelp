@@ -1,8 +1,10 @@
 // ==UserScript==
 // @name         Zuweisung Link abfangen und prüfen
 // @namespace    none
-// @version      1.0.1
+// @version      1.0.2
 // @description  Prüfung, ob Maßnahme bereits zugewiesen ist.
+// @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AssigneeChecker.js
+// @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AssigneeChecker.js
 // @match        https://nd-jira.unity.media.corp/*
 // @noframes
 // ==/UserScript==
