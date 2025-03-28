@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Zuweisung Link abfangen und prüfen
 // @namespace    none
-// @version      1.0.4
+// @version      1.0.5
 // @description  Prüfung, ob Maßnahme bereits zugewiesen ist.
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AssigneeChecker.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AssigneeChecker.js
@@ -70,7 +70,7 @@
 
             const okButton = document.createElement('button');
             okButton.textContent = 'OK';
-            okButton.style.backgroundColor = '#007bff'; // Blauer Button
+            okButton.style.backgroundColor = '#007bff';
             okButton.style.color = 'white';
             okButton.style.border = 'none';
             okButton.style.padding = '8px 16px';
