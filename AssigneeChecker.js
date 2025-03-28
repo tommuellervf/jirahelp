@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Zuweisung Link abfangen und prüfen
 // @namespace    none
-// @version      1.0.0
+// @version      1.0.1
 // @description  Prüfung, ob Maßnahme bereits zugewiesen ist.
 // @match        https://nd-jira.unity.media.corp/*
 // @noframes
@@ -75,8 +75,7 @@
             event.preventDefault();
             event.stopImmediatePropagation();
 
-            var currentURL = window.location.href;
-            var issueKeyMatch = currentURL.match(/ANDE-\d+$/);
+            var issueKeyMatch = target.href.match(/ANDE-\d+/);
 
             if (issueKeyMatch) {
                 var issueKey = issueKeyMatch[0];
