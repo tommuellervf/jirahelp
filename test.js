@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Zuweisung Link abfangen und prüfen
 // @namespace    none
-// @version      1.1.1
+// @version      1.0.3
 // @description  Prüfung, ob Maßnahme bereits zugewiesen ist.
-// @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/test.js
-// @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/test.js
+// @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AssigneeChecker.js
+// @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AssigneeChecker.js
 // @match        https://nd-jira.unity.media.corp/*
 // @noframes
 // ==/UserScript==
@@ -30,12 +30,26 @@
 
     function showModal(message) {
         return new Promise((resolve) => {
+            // Overlay für den Hintergrund
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.background = 'linear-gradient(135deg, #1e3c72, #2a5298)'; // Farbverlauf wie in der Grafik
+            overlay.style.opacity = '0.9'; // Leicht transparenter Overlay-Hintergrund
+            overlay.style.zIndex = '9999';
+            document.body.appendChild(overlay);
+
+            // Modal erstellen
             const modal = document.createElement('div');
             modal.style.position = 'fixed';
             modal.style.top = '50%';
             modal.style.left = '50%';
             modal.style.transform = 'translate(-50%, -50%)';
-            modal.style.background = 'rgba(0, 0, 0, 0.7)'; // Halbtransparenter dunkler Hintergrund
+            modal.style.background = 'rgba(0, 0, 0, 0.7)'; // Halbtransparenter Hintergrund
+            modal.style.backdropFilter = 'blur(5px)'; // Optional: Weichzeichner-Effekt für den Hintergrund
             modal.style.borderRadius = '15px'; // Abgerundete Ecken
             modal.style.padding = '20px';
             modal.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)'; // Leichter Schatten
@@ -45,17 +59,6 @@
             modal.style.maxWidth = '400px'; // Maximale Breite
             modal.style.width = '90%'; // Responsive Breite
             modal.style.textAlign = 'center'; // Text zentriert
-
-            // Hintergrund-Overlay für den Body
-            const overlay = document.createElement('div');
-            overlay.style.position = 'fixed';
-            overlay.style.top = '0';
-            overlay.style.left = '0';
-            overlay.style.width = '100%';
-            overlay.style.height = '100%';
-            overlay.style.background = 'linear-gradient(135deg, #1e3c72, #2a5298)'; // Farbverlauf wie in der Grafik
-            overlay.style.zIndex = '9999';
-            document.body.appendChild(overlay);
 
             const messageDiv = document.createElement('div');
             messageDiv.innerHTML = message;
