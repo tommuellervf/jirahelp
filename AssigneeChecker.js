@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Zuweisung Link abfangen und prüfen
 // @namespace    none
-// @version      1.0.2
+// @version      1.0.3
 // @description  Prüfung, ob Maßnahme bereits zugewiesen ist.
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AssigneeChecker.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AssigneeChecker.js
@@ -70,6 +70,11 @@
         });
     }
 
+    function extractIssueKey(url) {
+        const match = url.match(/ANDE-\d+/);
+        return match ? match[0] : null;
+    }
+
     document.addEventListener('click', async function(event) {
         var target = event.target;
 
@@ -77,10 +82,10 @@
             event.preventDefault();
             event.stopImmediatePropagation();
 
-            var issueKeyMatch = target.href.match(/ANDE-\d+/);
+            var currentURL = window.location.href;
+            var issueKey = extractIssueKey(currentURL);
 
-            if (issueKeyMatch) {
-                var issueKey = issueKeyMatch[0];
+            if (issueKey) {
                 const shouldProceed = await checkCondition(issueKey);
                 if (shouldProceed) {
                     window.location.href = target.href;
