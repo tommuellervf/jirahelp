@@ -8,7 +8,6 @@
 // @match        https://nd-jira.unity.media.corp/*
 // @noframes
 // ==/UserScript==
-
 (function() {
     'use strict';
 
@@ -37,10 +36,7 @@
             overlay.style.left = '0';
             overlay.style.width = '100%';
             overlay.style.height = '100%';
-            // Farbverlauf mit Browser-Präfixen für maximale Kompatibilität
-            overlay.style.background = '-webkit-linear-gradient(135deg, #1e3c72, #2a5298)'; // Für ältere Webkit-Browser
-            overlay.style.background = '-moz-linear-gradient(135deg, #1e3c72, #2a5298)'; // Für ältere Firefox-Versionen
-            overlay.style.background = 'linear-gradient(135deg, #1e3c72, #2a5298)'; // Standard-Syntax
+            overlay.style.background = '#1e3c72'; // Einheitlicher blauer Hintergrund
             overlay.style.zIndex = '9999';
             document.body.appendChild(overlay);
 
