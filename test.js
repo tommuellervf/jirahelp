@@ -192,6 +192,131 @@
         }
     }
 
+    const elementIds = ['customfield_14413-val', 'customfield_13702-val', 'customfield_13700-val'];
+    const fieldSelectors = {
+        'zip_code': '[data-name="zip_code"]',
+        'city_name': '[data-name="city_name"]',
+        'street_name': '[data-name="street_name"]'
+    };
+    const fieldIdMap = {
+        'zip_code': 'customfield_14413-val',
+        'city_name': 'customfield_13702-val',
+        'street_name': 'customfield_13700-val'
+    };
+
+    // Restore field population functions
+    function populateFields(values) {
+        let allFieldsPopulated = true;
+        for (const fieldName in fieldSelectors) {
+            let fieldSelector = fieldSelectors[fieldName];
+
+            if (fieldName === 'zip_code' && !document.querySelector(fieldSelector)) {
+                fieldSelector = '[name="zip_code"]';
+            }
+
+            if (fieldName === 'street_name' && !document.querySelector(fieldSelector)) {
+                fieldSelector = '[name="street_name"]';
+            }
+
+            const field = document.querySelector(fieldSelector);
+            if (field) {
+                const elementId = fieldIdMap[fieldName];
+                const value = values[elementId];
+                if (value !== undefined) {
+                    field.value = value;
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
+                } else {
+                    allFieldsPopulated = false;
+                }
+            } else {
+                allFieldsPopulated = false;
+            }
+        }
+    }
+
+    function areAllFieldsPresent() {
+        for (const fieldName in fieldSelectors) {
+            let fieldSelector = fieldSelectors[fieldName];
+
+            if (fieldName === 'zip_code' && !document.querySelector(fieldSelector)) {
+                fieldSelector = '[name="zip_code"]';
+            }
+
+            if (fieldName === 'street_name' && !document.querySelector(fieldSelector)) {
+                fieldSelector = '[name="street_name"]';
+            }
+
+            const field = document.querySelector(fieldSelector);
+            if (!field) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function onFieldsReady(values) {
+        if (areAllFieldsPresent()) {
+            populateFields(values);
+        }
+    }
+
+    // Modify the Physical Browser page specific logic to include field population
+    function setupPhysicalBrowserPage() {
+        const checkAndReload = () => {
+            const mapAlert = document.querySelector('div#map-alert');
+            if (mapAlert && 
+                mapAlert.offsetParent !== null && 
+                mapAlert.textContent.includes("Nicht authentifizierter Zugriff auf Kartendaten.")) {
+                location.reload();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', checkAndReload);
+        setInterval(checkAndReload, 1000);
+
+        // Layer visibility setup
+        const setupLayerVisibility = () => {
+            const layerElements = document.querySelectorAll('span.layer-visibility');
+            if (layerElements.length >= 15) {
+                layerElements[1]?.click();
+                layerElements[14]?.click();
+            }
+        };
+
+        // Restore field population logic
+        GM.getValue('customFieldValues').then((values) => {
+            if (values) {
+                if (areAllFieldsPresent()) {
+                    populateFields(values);
+                } else {
+                    const observer = new MutationObserver((mutations) => {
+                        if (areAllFieldsPresent()) {
+                            observer.disconnect();
+                            onFieldsReady(values);
+                        }
+                    });
+
+                    observer.observe(document.body, { childList: true, subtree: true });
+                }
+            } else {
+                log.error('No values found in GM.getValue(\'customFieldValues\')');
+            }
+        });
+
+        // Use MutationObserver for dynamic content
+        const observer = new MutationObserver((mutations) => {
+            if (document.querySelectorAll('span.layer-visibility').length >= 15) {
+                setupLayerVisibility();
+                observer.disconnect();
+            }
+        });
+
+        observer.observe(document.body, { 
+            childList: true, 
+            subtree: true 
+        });
+    }
+
     // Run script
     initializeScript();
 })();
