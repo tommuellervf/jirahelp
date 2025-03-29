@@ -1,12 +1,14 @@
 // ==UserScript==
-// @name Jira - Physical Browser Integration
-// @version 1.0.0
-// @description Jira - Physical Browser Integration
-// @match https://nd-jira.unity.media.corp/*
-// @match https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
-// @grant GM_openInTab
-// @grant GM.setValue
-// @grant GM.getValue
+// @name          Jira - Physical Browser Integration
+// @version       1.0.0
+// @description   Jira - Physical Browser Integration
+// @match         https://nd-jira.unity.media.corp/*
+// @match         https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
+// @updateURL     https://raw.githubusercontent.com/tommuellervf/jirahelp/main/JiraPhysicalBrowserIntegration.js
+// @downloadURL   https://raw.githubusercontent.com/tommuellervf/jirahelp/main/JiraPhysicalBrowserIntegration.js
+// @grant         GM_openInTab
+// @grant         GM.setValue
+// @grant         GM.getValue
 // @noframes
 // @run-at document-idle
 // ==/UserScript==
