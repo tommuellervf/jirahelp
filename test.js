@@ -15,182 +15,142 @@
 (function() {
     'use strict';
 
-    // Centralized configuration
-    const CONFIG = {
-        JIRA_API_URL: 'https://nd-jira.unity.media.corp/rest/api/2/issue/',
-        OSM_URL: 'https://nominatim.openstreetmap.org/search?format=json',
-        BUTTON_TEXT: 'Physical Browser',
-        BUTTON_CLASS: 'custom-physical-browser-button'
+    const config = {
+        apiUrl: 'https://nd-jira.unity.media.corp/rest/api/2/issue/',
+        osmUrl: 'https://nominatim.openstreetmap.org/search?format=json',
+        buttonText: 'Physical Browser',
+        buttonTarget: '_blank',
+        buttonClass: 'custom-button-class',
     };
 
-    // Utility Functions
-    const log = {
-        info: (msg) => console.log(`[PB Script] ${msg}`),
-        error: (msg) => console.error(`[PB Script] ${msg}`)
-    };
+    async function fetchData(url) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+        return response.json();
+    }
+
+    async function getGPSData(plz, ort, strasse) {
+        const osmUrl = `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`;
+        const osmData = await fetchData(osmUrl);
+        if (osmData.length > 0) {
+            const { lat, lon } = osmData[0];
+            console.log("TOMMY - GPS Data:", lat, lon);
+            return { lat, lon };
+        } else {
+            console.error("TOMMY - No GPS data found for the given address");
+            return false;
+        }
+    }
+
+    async function checkCondition(issueKey) {
+        const apiUrl = `${config.apiUrl}${issueKey}`;
+        try {
+            const data = await fetchData(apiUrl);
+            const assignee = data.fields.assignee;
+            if (assignee) {
+                console.log("TOMMY - Assignee found:", assignee.displayName);
+
+                const { customfield_14413: plz, customfield_13702: ort, customfield_13700: strasse } = data.fields;
+                console.log("TOMMY - PLZ:", plz);
+                console.log("TOMMY - Ort:", ort);
+                console.log("TOMMY - Straße:", strasse);
+
+                if (plz && ort && strasse) {
+                    return await getGPSData(plz, ort, strasse);
+                } else {
+                    console.error("TOMMY - Missing address fields");
+                    return false;
+                }
+            } else {
+                console.log("TOMMY - No assignee found");
+                return false;
+            }
+        } catch (error) {
+            console.error("TOMMY - Error in checkCondition:", error);
+            return false;
+        }
+    }
 
     function extractIssueKey(url) {
-        const match = url.match(/([A-Z]+-\d+)/);
-        return match ? match[1] : null;
+        const match = url.match(/ANDE-\d+/);
+        return match ? match[0] : null;
     }
 
-    // Fetch issue details with robust error handling
-    async function fetchIssueDetails(issueKey) {
-        try {
-            const response = await fetch(`${CONFIG.JIRA_API_URL}${issueKey}`);
-            if (!response.ok) {
-                throw new Error(`API request failed: ${response.status}`);
+    async function addButton() {
+        console.log("TOMMY - Before attempting to attach event listener");
+        var currentURL = window.location.href;
+        var issueKey = extractIssueKey(currentURL);
+        console.log("TOMMY - Extracted issue key:", issueKey);
+
+        if (issueKey) {
+            const gpsData = await checkCondition(issueKey);
+            console.log("TOMMY - GPS Data:", gpsData);
+            if (gpsData) {
+                const { lat, lon } = gpsData;
+
+                const newLi = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = `https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html#/map/${lat},${lon},20z`;
+                link.textContent = config.buttonText;
+                link.target = config.buttonTarget;
+                link.className = config.buttonClass;
+                newLi.appendChild(link);
+                console.log("TOMMY - Created new list item and link (button will be added)");
+
+                // Verwende GM_openInTab, um den Tab im Hintergrund zu öffnen
+                link.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    GM_openInTab(this.href, true);
+                    console.log("TOMMY - Opened link in background tab");
+                });
+
+                const ul = document.querySelector('ul.aui-nav');
+                console.log("TOMMY - ul.aui-nav element:", ul);
+                if (ul) {
+                    const lastLi = ul.querySelector('li:last-of-type');
+                    console.log("TOMMY - lastLi element:", lastLi);
+                    if (lastLi) {
+                        ul.insertBefore(newLi, lastLi.nextSibling);
+                        console.log("TOMMY - Inserted new list item before last list item");
+                    } else {
+                        ul.appendChild(newLi);
+                        console.error("TOMMY - Appended new list item to ul.aui-nav");
+                    }
+                } else {
+                    console.error("TOMMY - Could not find element ul.aui-nav");
+                }
+            } else {
+                console.log("TOMMY - Conditions not met to add button.");
             }
-            return await response.json();
-        } catch (error) {
-            log.error(`Issue fetch failed: ${error.message}`);
-            return null;
+        } else {
+            console.log("TOMMY - No issue key found in URL, not checking assignee.");
         }
     }
 
-    // Get GPS coordinates from OpenStreetMap
-    async function getGpsCoordinates(plz, ort, strasse) {
-        try {
-            const url = `${CONFIG.OSM_URL}&postalcode=${plz}&city=${ort}&street=${strasse}`;
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-                throw new Error(`OSM request failed: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            return data.length > 0 
-                ? { lat: data[0].lat, lon: data[0].lon }
-                : null;
-        } catch (error) {
-            log.error(`GPS coordinate fetch failed: ${error.message}`);
-            return null;
+    function removeButton() {
+        const existingButton = document.querySelector(`.${config.buttonClass}`);
+        if (existingButton) {
+            existingButton.parentElement.remove();
+            console.log("TOMMY - Existing button removed");
         }
     }
 
-    // Create and inject Physical Browser button
-    function createPhysicalBrowserButton(lat, lon) {
-        const newButton = document.createElement('li');
-        const link = document.createElement('a');
-        
-        link.href = `https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html#/map/${lat},${lon},20z`;
-        link.textContent = CONFIG.BUTTON_TEXT;
-        link.target = '_blank';
-        link.className = CONFIG.BUTTON_CLASS;
-        
-        link.addEventListener('click', (event) => {
-            event.preventDefault();
-            GM_openInTab(link.href, true);
-        });
-        
-        newButton.appendChild(link);
-        return newButton;
-    }
-
-    // Main button addition logic
-    async function addPhysicalBrowserButton() {
-        const currentURL = window.location.href;
-        const issueKey = extractIssueKey(currentURL);
-        
-        if (!issueKey) {
-            log.info('No issue key found');
-            return;
+    // Überwache Änderungen der URL
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+        const currentUrl = location.href;
+        if (currentUrl !== lastUrl) {
+            lastUrl = currentUrl;
+            console.log("TOMMY - URL changed:", currentUrl);
+            removeButton();
+            addButton();
         }
+    }).observe(document, { subtree: true, childList: true });
 
-        const issueDetails = await fetchIssueDetails(issueKey);
-        
-        if (!issueDetails || !issueDetails.fields) {
-            log.error('Could not retrieve issue details');
-            return;
-        }
-
-        const { 
-            customfield_14413: plz, 
-            customfield_13702: ort, 
-            customfield_13700: strasse 
-        } = issueDetails.fields;
-
-        if (!plz || !ort || !strasse) {
-            log.error('Missing address details');
-            return;
-        }
-
-        const gpsData = await getGpsCoordinates(plz, ort, strasse);
-        
-        if (!gpsData) {
-            log.error('Could not get GPS coordinates');
-            return;
-        }
-
-        const navigationMenu = document.querySelector('ul.aui-nav');
-        if (!navigationMenu) {
-            log.error('Navigation menu not found');
-            return;
-        }
-
-        const physicalBrowserButton = createPhysicalBrowserButton(
-            gpsData.lat, 
-            gpsData.lon
-        );
-
-        const lastListItem = navigationMenu.lastElementChild;
-        navigationMenu.insertBefore(
-            physicalBrowserButton, 
-            lastListItem.nextSibling
-        );
-
-        log.info('Physical Browser button added successfully');
-    }
-
-    // Physical Browser page specific logic
-    function setupPhysicalBrowserPage() {
-        const checkAndReload = () => {
-            const mapAlert = document.querySelector('div#map-alert');
-            if (mapAlert && 
-                mapAlert.offsetParent !== null && 
-                mapAlert.textContent.includes("Nicht authentifizierter Zugriff auf Kartendaten.")) {
-                location.reload();
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', checkAndReload);
-        setInterval(checkAndReload, 1000);
-
-        // Layer visibility setup
-        const setupLayerVisibility = () => {
-            const layerElements = document.querySelectorAll('span.layer-visibility');
-            if (layerElements.length >= 15) {
-                layerElements[1]?.click();
-                layerElements[14]?.click();
-            }
-        };
-
-        // Use MutationObserver for dynamic content
-        const observer = new MutationObserver((mutations) => {
-            if (document.querySelectorAll('span.layer-visibility').length >= 15) {
-                setupLayerVisibility();
-                observer.disconnect();
-            }
-        });
-
-        observer.observe(document.body, { 
-            childList: true, 
-            subtree: true 
-        });
-    }
-
-    // Script initialization
-    function initializeScript() {
-        const currentURL = window.location.href;
-
-        if (currentURL.includes('nd-jira.unity.media.corp/browse/')) {
-            addPhysicalBrowserButton();
-        }
-
-        if (currentURL.includes('physical_browser/index.html')) {
-            setupPhysicalBrowserPage();
-        }
-    }
+    window.addEventListener('load', () => {
+        removeButton();
+        addButton();
+    });
 
     const elementIds = ['customfield_14413-val', 'customfield_13702-val', 'customfield_13700-val'];
     const fieldSelectors = {
@@ -204,20 +164,16 @@
         'street_name': 'customfield_13700-val'
     };
 
-    // Restore field population functions
     function populateFields(values) {
         let allFieldsPopulated = true;
         for (const fieldName in fieldSelectors) {
             let fieldSelector = fieldSelectors[fieldName];
-
             if (fieldName === 'zip_code' && !document.querySelector(fieldSelector)) {
                 fieldSelector = '[name="zip_code"]';
             }
-
             if (fieldName === 'street_name' && !document.querySelector(fieldSelector)) {
                 fieldSelector = '[name="street_name"]';
             }
-
             const field = document.querySelector(fieldSelector);
             if (field) {
                 const elementId = fieldIdMap[fieldName];
@@ -237,15 +193,12 @@
     function areAllFieldsPresent() {
         for (const fieldName in fieldSelectors) {
             let fieldSelector = fieldSelectors[fieldName];
-
             if (fieldName === 'zip_code' && !document.querySelector(fieldSelector)) {
                 fieldSelector = '[name="zip_code"]';
             }
-
             if (fieldName === 'street_name' && !document.querySelector(fieldSelector)) {
                 fieldSelector = '[name="street_name"]';
             }
-
             const field = document.querySelector(fieldSelector);
             if (!field) {
                 return false;
@@ -260,35 +213,88 @@
         }
     }
 
-    // Modify the Physical Browser page specific logic to include field population
-    function setupPhysicalBrowserPage() {
-        const checkAndReload = () => {
-            const mapAlert = document.querySelector('div#map-alert');
-            if (mapAlert && 
-                mapAlert.offsetParent !== null && 
-                mapAlert.textContent.includes("Nicht authentifizierter Zugriff auf Kartendaten.")) {
-                location.reload();
-            }
-        };
+    if (window.location.href.startsWith('https://nd-jira.unity.media.corp/browse/')) {
+        const values = {};
 
-        document.addEventListener('DOMContentLoaded', checkAndReload);
+        for (const id of elementIds) {
+            const element = document.getElementById(id);
+            if (element) {
+                let textContent = element.textContent.trim();
+                if (id === 'customfield_13700-val') {
+                    textContent = textContent.replace(/straße/gi, 'str.').replace(/strasse/gi, 'str.');
+                }
+                values[id] = textContent;
+            } else {
+                values[id] = null;
+            }
+        }
+
+        if (typeof GM !== 'undefined' && GM.setValue) {
+            GM.setValue('customFieldValues', values).then(() => {
+            });
+        } else {
+            console.error('TOMMY - GM.setValue is not available.');
+        }
+    }
+
+    const targetSelector = 'div#map-alert';
+
+    const checkAndReload = () => {
+        const targetElement = document.querySelector(targetSelector);
+
+        if (!targetElement) {
+            return;
+        }
+
+        const isVisible = targetElement.offsetParent !== null && window.getComputedStyle(targetElement).visibility !== 'hidden';
+        const hasTargetText = targetElement.textContent.includes("Nicht authentifizierter Zugriff auf Kartendaten.");
+
+        if (isVisible && hasTargetText) {
+            location.reload();
+        }
+    };
+
+    if (window.location.href.includes('https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html')) {
+
+        (document.readyState === 'complete' || document.readyState === 'interactive' ? checkAndReload : window.addEventListener('DOMContentLoaded', checkAndReload));
+
         setInterval(checkAndReload, 1000);
 
-        // Layer visibility setup
-        const setupLayerVisibility = () => {
-            const layerElements = document.querySelectorAll('span.layer-visibility');
-            if (layerElements.length >= 15) {
-                layerElements[1]?.click();
-                layerElements[14]?.click();
-            }
-        };
+        function waitForElement(selector) {
+            return new Promise(resolve => {
+                if (document.querySelectorAll(selector).length > 0) {
+                    return resolve(document.querySelectorAll(selector));
+                }
 
-        // Restore field population logic
+                const observer = new MutationObserver(mutations => {
+                    if (document.querySelectorAll(selector).length > 0) {
+                        resolve(document.querySelectorAll(selector));
+                        observer.disconnect();
+                    }
+                });
+
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            });
+        }
+
+        waitForElement('span.layer-visibility').then((allLayerVisibilityElements) => {
+            if (allLayerVisibilityElements.length >= 15) {
+                allLayerVisibilityElements[1].click();
+                allLayerVisibilityElements[14].click();
+            } else {
+                console.error('TOMMY - Not enough layer-visibility elements found.');
+            }
+        });
+
         GM.getValue('customFieldValues').then((values) => {
             if (values) {
                 if (areAllFieldsPresent()) {
                     populateFields(values);
                 } else {
+
                     const observer = new MutationObserver((mutations) => {
                         if (areAllFieldsPresent()) {
                             observer.disconnect();
@@ -299,24 +305,9 @@
                     observer.observe(document.body, { childList: true, subtree: true });
                 }
             } else {
-                log.error('No values found in GM.getValue(\'customFieldValues\')');
+                console.error('TOMMY - No values found in GM.getValue(\'customFieldValues\')');
             }
-        });
-
-        // Use MutationObserver for dynamic content
-        const observer = new MutationObserver((mutations) => {
-            if (document.querySelectorAll('span.layer-visibility').length >= 15) {
-                setupLayerVisibility();
-                observer.disconnect();
-            }
-        });
-
-        observer.observe(document.body, { 
-            childList: true, 
-            subtree: true 
         });
     }
 
-    // Run script
-    initializeScript();
 })();
