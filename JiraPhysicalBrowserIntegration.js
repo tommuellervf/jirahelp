@@ -176,7 +176,6 @@
         }
 
         console.error("TOMMY - Max attempts reached: No GPS data found for the given address");
-        config.separatorColors.separator2 = 'red';
         return null;
     }
 
