@@ -10,7 +10,7 @@
 // @grant         GM.setValue
 // @grant         GM.getValue
 // @noframes
-// @run-at document-idle
+// @run-at document-end
 // ==/UserScript==
 
 (function() {
@@ -20,9 +20,12 @@
     const config = {
         apiUrl: 'https://nd-jira.unity.media.corp/rest/api/2/issue/',
         osmUrl: 'https://nominatim.openstreetmap.org/search?format=json',
-        buttonText: 'Physical Browser',
-        buttonTarget: '_blank',
-        buttonClass: 'custom-button-class',
+        PBbuttonText: 'Physical Browser',
+        PBbuttonTarget: '_blank',
+        PBbuttonClass: 'custom-button-class',
+        GHbuttonText: 'GeoHack',
+        GHbuttonTarget: '_blank',
+        GHbuttonClass: 'custom-button-class',
         plz: null,
         ort: null,
         strasse: null
@@ -44,40 +47,68 @@
         const data = await fetchData(apiUrl);
         if (data) {
             const { customfield_14413: plz, customfield_13702: ort, customfield_13700: strasse } = data.fields;
-            if (plz && ort && strasse) {
+            if (plz && ort) {
                 config.plz = plz;
                 config.ort = ort;
-                config.strasse = strasse.replace(/straße/gi, 'str.').replace(/strasse/gi, 'str.');
+                if (strasse) {
+                    config.strasse = strasse.replace(/straße/gi, 'str.').replace(/strasse/gi, 'str.');
+                } else {
+                    config.strasse = null;
+                }
                 await GM.setValue('customFieldValues', { plz, ort, strasse: config.strasse });
                 return { plz, ort, strasse: config.strasse };
             } else {
-                console.error("Missing address fields");
+                console.error("TOMMY - Missing address fields");
                 return null;
             }
         }
         return null;
     }
 
+    let osmUrl
+
     async function getGPSData(plz, ort, strasse) {
-        const osmUrl = `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`;
-        const osmData = await fetchData(osmUrl);
-        if (osmData && osmData.length > 0) {
-            const { lat, lon } = osmData[0];
-            return { lat, lon };
+
+        if (strasse) {
+            osmUrl = `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`;
         } else {
-            console.error("No GPS data found for the given address");
-            return null;
+            osmUrl = `${config.osmUrl}&postalcode=${plz}&city=${ort}`;
         }
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        console.log("TOMMY - PLZ:", plz);
+        console.log("TOMMY - Ort:", ort);
+        console.log("TOMMY - Strasse:", strasse);
+
+        while (attempts < maxAttempts) {
+            try {
+
+                const osmData = await fetchData(osmUrl);
+                if (osmData && osmData.length > 0) {
+                    const { lat, lon } = osmData[0];
+                    return { lat, lon };
+                } else {
+                    console.error(`TOMMY - Attempt ${attempts + 1}: No GPS data found for the given address`);
+                }
+            } catch (error) {
+                console.error(`TOMMY - Attempt ${attempts + 1}: Error fetching GPS data -`, error);
+            }
+            attempts++;
+        }
+
+        console.error("TOMMY - Max attempts reached: No GPS data found for the given address");
+        return null;
     }
 
     async function checkCondition(issueKey) {
         const data = await fetchData(`${config.apiUrl}${issueKey}`);
         if (data) {
             const { assignee, customfield_14413: plz, customfield_13702: ort, customfield_13700: strasse } = data.fields;
-            if (assignee && plz && ort && strasse) {
+            if (assignee && plz && ort) {
                 return await getGPSData(plz, ort, strasse);
             } else {
-                console.error("Missing address fields or assignee");
+                console.error("TOMMY - Missing address fields or assignee");
                 return null;
             }
         }
@@ -105,27 +136,65 @@
 
         if (issueKey) {
             const gpsData = await checkCondition(issueKey);
+            console.error("TOMMY - " & gpsData);
             if (gpsData) {
                 const { lat, lon } = gpsData;
-                const newLi = document.createElement('li');
-                const link = document.createElement('a');
-                link.href = `https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html#/map/${lat},${lon},20z`;
-                link.textContent = config.buttonText;
-                link.target = config.buttonTarget;
-                link.className = config.buttonClass;
-                newLi.appendChild(link);
-                link.addEventListener('click', function(event) {
+                var geohackURL = generateGeoHackURL(lat, lon);
+
+                const PBnewLi = document.createElement('li');
+                const PBlink = document.createElement('a');
+                PBlink.href = `https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html#/map/${lat},${lon},20z`;
+                PBlink.textContent = config.PBbuttonText;
+                PBlink.target = config.PBbuttonTarget;
+                PBlink.className = config.PBbuttonClass;
+                PBnewLi.appendChild(PBlink);
+                PBlink.addEventListener('click', function(event) {
                     event.preventDefault();
                     GM_openInTab(this.href, true);
                 });
+
+                const geoHackLi = document.createElement('li');
+                const geoHackLink = document.createElement('a');
+                geoHackLink.href = geohackURL;
+                geoHackLink.textContent = config.GHbuttonText;
+                geoHackLink.target = config.GHbuttonTarget;
+                geoHackLink.className = config.GHbuttonClass;
+                geoHackLink.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    GM_openInTab(this.href, true);
+                });
+                geoHackLi.appendChild(geoHackLink);
+
                 const ul = document.querySelector('ul.aui-nav');
                 if (ul) {
-                    ul.appendChild(newLi);
+                    const separator = document.createElement('span');
+                    separator.style.marginLeft = '10px';
+                    ul.insertBefore(separator, PBnewLi.nextSibling);
+                    ul.appendChild(PBnewLi);
+                    ul.appendChild(geoHackLi);
                 } else {
-                    console.error("Could not find element ul.aui-nav");
+                    console.error("TOMMY - Could not find element ul.aui-nav");
                 }
             }
         }
+    }
+
+    function convertToDMS(degrees) {
+        var d = Math.floor(degrees);
+        var m = Math.floor((degrees - d) * 60);
+        var s = Math.round((degrees - d - m / 60) * 3600);
+        return { d: d, m: m, s: s };
+    }
+
+    function generateGeoHackURL(lat, lon) {
+        var latDMS = convertToDMS(Math.abs(lat));
+        var lonDMS = convertToDMS(Math.abs(lon));
+
+        var latDir = lat >= 0 ? 'N' : 'S';
+        var lonDir = lon >= 0 ? 'E' : 'W';
+
+        var url = `https://geohack.toolforge.org/geohack.php?params=${latDMS.d}_${latDMS.m}_${latDMS.s}_${latDir}_${lonDMS.d}_${lonDMS.m}_${lonDMS.s}_${lonDir}`;
+        return url;
     }
 
     function removeButton() {
