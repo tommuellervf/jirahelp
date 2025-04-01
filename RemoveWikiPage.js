@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript zum entfernen der Wiki Page Links in Jira
 // @namespace    none
-// @version      1.0.6
+// @version      1.0.7
 // @description  Entfernt Wiki Page Links in Jira
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -16,18 +16,18 @@
     function removeWikiPageLinks(cell) {
         if (!cell) return;
 
-        const isWikiPageLink = (node) => 
-            node.nodeType === Node.ELEMENT_NODE && 
-            node.tagName === 'A' && 
-            (node.textContent.trim() === 'Wiki Page' || 
-             node.href?.includes('ker-l-jirapp02p.unity.media.corp'));
+        const isWikiPageLink = (node) =>
+        node.nodeType === Node.ELEMENT_NODE &&
+              node.tagName === 'A' &&
+              (node.textContent.trim() === 'Wiki Page' ||
+               node.href?.includes('ker-l-jirapp02p.unity.media.corp'));
 
         const childNodes = Array.from(cell.childNodes);
         const nodesToRemove = [];
-        
+
         for (let i = 0; i < childNodes.length; i++) {
             const node = childNodes[i];
-            
+
             if (isWikiPageLink(node)) {
                 nodesToRemove.push(node);
 
@@ -52,7 +52,7 @@
     function observeDOM() {
         const targetNode = document.body;
         const config = { childList: true, subtree: true };
-        
+
         const observer = new MutationObserver((mutationsList) => {
             for (const mutation of mutationsList) {
                 if (mutation.type === 'childList') {
@@ -68,7 +68,7 @@
                 }
             }
         });
-        
+
         observer.observe(targetNode, config);
     }
 
