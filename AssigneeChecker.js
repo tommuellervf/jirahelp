@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Zuweisung Link abfangen und prüfen
 // @namespace    none
-// @version      1.0.5
+// @version      1.0.6
 // @description  Prüfung, ob Maßnahme bereits zugewiesen ist.
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AssigneeChecker.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AssigneeChecker.js
@@ -12,51 +12,91 @@
 (function() {
     'use strict';
 
-    async function checkCondition(issueKey) {
-        const apiUrl = `https://nd-jira.unity.media.corp/rest/api/2/issue/${issueKey}`;
+    const config = {
+        jiraBaseUrl: 'https://nd-jira.unity.media.corp',
+        apiPath: '/rest/api/2/issue/',
+        assignPath: '/secure/AssignIssue.jspa',
+        issueKeyPattern: /([A-Z]+-\d+)/
+    };
+
+    async function checkAssignee(issueKey) {
+        const apiUrl = `${config.jiraBaseUrl}${config.apiPath}${issueKey}`;
+
         try {
             const response = await fetch(apiUrl);
+
+            if (!response.ok) {
+                throw new Error(`API Fehler: ${response.status} ${response.statusText}`);
+            }
+
             const data = await response.json();
             const assignee = data.fields.assignee;
+
             if (assignee) {
                 return showModal(`Die Maßnahme ist bereits in Bearbeitung durch:<br><br><b>${assignee.displayName}</b><br><br>Möchten Sie die Maßnahme übernehmen?`);
             } else {
                 return true;
             }
         } catch (error) {
-            return false;
+            console.error('Fehler beim Abrufen des Issues:', error);
+            return showModal(`Fehler beim Prüfen der Zuweisung:<br><br>${error.message}<br><br>Möchten Sie trotzdem fortfahren?`);
         }
     }
 
     function showModal(message) {
         return new Promise((resolve) => {
-            const overlay = document.createElement('div');
-            overlay.style.position = 'fixed';
-            overlay.style.top = '0';
-            overlay.style.left = '0';
-            overlay.style.width = '100%';
-            overlay.style.height = '100%';
-            overlay.style.background = 'rgba(30, 60, 114, 0.6)';
-            overlay.style.backdropFilter = 'blur(2px)';
-            overlay.style.zIndex = '9999';
-            document.body.appendChild(overlay);
 
-            const modal = document.createElement('div');
-            modal.style.position = 'fixed';
-            modal.style.top = '50%';
-            modal.style.left = '50%';
-            modal.style.transform = 'translate(-50%, -50%)';
-            modal.style.background = 'rgba(0, 0, 0, 0.7)';
-            modal.style.backdropFilter = 'blur(5px)';
-            modal.style.borderRadius = '15px';
-            modal.style.padding = '20px';
-            modal.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
-            modal.style.zIndex = '10000';
-            modal.style.color = 'white';
-            modal.style.fontFamily = '"-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif"';
-            modal.style.maxWidth = '400px';
-            modal.style.width = '90%';
-            modal.style.textAlign = 'center';
+            const styles = {
+                overlay: {
+                    position: 'fixed',
+                    top: '0',
+                    left: '0',
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(30, 60, 114, 0.6)',
+                    backdropFilter: 'blur(2px)',
+                    zIndex: '9999'
+                },
+                modal: {
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    backdropFilter: 'blur(5px)',
+                    borderRadius: '15px',
+                    padding: '20px',
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
+                    zIndex: '10000',
+                    color: 'white',
+                    fontFamily: '"-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif"',
+                    maxWidth: '400px',
+                    width: '90%',
+                    textAlign: 'center'
+                },
+                button: {
+                    base: {
+                        color: 'white',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '1em'
+                    },
+                    ok: {
+                        backgroundColor: '#007bff',
+                        hoverColor: '#0056b3'
+                    },
+                    cancel: {
+                        backgroundColor: '#dc3545',
+                        hoverColor: '#b02a37',
+                        marginLeft: '10px'
+                    }
+                }
+            };
+
+            const overlay = createElementWithStyles('div', styles.overlay);
+            const modal = createElementWithStyles('div', styles.modal);
 
             const messageDiv = document.createElement('div');
             messageDiv.innerHTML = message;
@@ -68,77 +108,100 @@
             buttonContainer.style.marginTop = '20px';
             buttonContainer.style.textAlign = 'right';
 
-            const okButton = document.createElement('button');
-            okButton.textContent = 'OK';
-            okButton.style.backgroundColor = '#007bff';
-            okButton.style.color = 'white';
-            okButton.style.border = 'none';
-            okButton.style.padding = '8px 16px';
-            okButton.style.borderRadius = '5px';
-            okButton.style.cursor = 'pointer';
-            okButton.style.fontSize = '1em';
-            okButton.onmouseover = () => {
-                okButton.style.backgroundColor = '#0056b3';
-            };
-            okButton.onmouseout = () => {
-                okButton.style.backgroundColor = '#007bff';
-            };
-            okButton.onclick = () => {
-                document.body.removeChild(modal);
-                document.body.removeChild(overlay);
-                resolve(true);
-            };
+            const okButton = createButton('OK', {...styles.button.base, ...styles.button.ok}, () => {
+                cleanupAndResolve(true);
+            });
+
+            const cancelButton = createButton('Abbrechen', {...styles.button.base, ...styles.button.cancel}, () => {
+                cleanupAndResolve(false);
+            });
+
             buttonContainer.appendChild(okButton);
+            buttonContainer.appendChild(cancelButton);
+            modal.appendChild(buttonContainer);
 
-            const cancelButton = document.createElement('button');
-            cancelButton.textContent = 'Abbrechen';
-            cancelButton.style.marginLeft = '10px';
-            cancelButton.style.backgroundColor = '#dc3545';
-            cancelButton.style.color = 'white';
-            cancelButton.style.border = 'none';
-            cancelButton.style.padding = '8px 16px';
-            cancelButton.style.borderRadius = '5px';
-            cancelButton.style.cursor = 'pointer';
-            cancelButton.style.fontSize = '1em';
-            cancelButton.onmouseover = () => {
-                cancelButton.style.backgroundColor = '#b02a37';
+            document.body.appendChild(overlay);
+            document.body.appendChild(modal);
+
+            const keyHandler = (e) => {
+                if (e.key === 'Escape') {
+                    cleanupAndResolve(false);
+                }
             };
-            cancelButton.onmouseout = () => {
-                cancelButton.style.backgroundColor = '#dc3545';
-            };
-            cancelButton.onclick = () => {
+            document.addEventListener('keydown', keyHandler);
+
+            function cleanupAndResolve(result) {
                 document.body.removeChild(modal);
                 document.body.removeChild(overlay);
-                resolve(false);
-            };
-            buttonContainer.appendChild(cancelButton);
-
-            modal.appendChild(buttonContainer);
-            document.body.appendChild(modal);
+                document.removeEventListener('keydown', keyHandler);
+                resolve(result);
+            }
         });
     }
 
+    function createElementWithStyles(tagName, styles) {
+        const element = document.createElement(tagName);
+        Object.assign(element.style, styles);
+        document.body.appendChild(element);
+        return element;
+    }
+
+    function createButton(text, styles, clickHandler) {
+        const button = document.createElement('button');
+        button.textContent = text;
+        Object.assign(button.style, styles);
+
+        const baseColor = styles.backgroundColor;
+        const hoverColor = styles.hoverColor;
+
+        if (hoverColor) {
+            button.onmouseover = () => {
+                button.style.backgroundColor = hoverColor;
+            };
+            button.onmouseout = () => {
+                button.style.backgroundColor = baseColor;
+            };
+        }
+
+        button.onclick = clickHandler;
+        return button;
+    }
+
     function extractIssueKey(url) {
-        const match = url.match(/ANDE-\d+/);
+        const match = url.match(config.issueKeyPattern);
         return match ? match[0] : null;
     }
 
-    document.addEventListener('click', async function(event) {
-        var target = event.target;
+    function setupListeners() {
 
-        if (target.tagName === 'A' && target.href.startsWith("https://nd-jira.unity.media.corp/secure/AssignIssue.jspa")) {
-            event.preventDefault();
-            event.stopImmediatePropagation();
+        document.addEventListener('click', async function(event) {
 
-            var currentURL = window.location.href;
-            var issueKey = extractIssueKey(currentURL);
+            let target = event.target;
+            while (target && target.tagName !== 'A') {
+                target = target.parentElement;
+                if (!target) return;
+            }
 
-            if (issueKey) {
-                const shouldProceed = await checkCondition(issueKey);
-                if (shouldProceed) {
+            if (target.href && target.href.includes(config.assignPath)) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+
+                const currentURL = window.location.href;
+                const issueKey = extractIssueKey(currentURL);
+
+                if (issueKey) {
+                    const shouldProceed = await checkAssignee(issueKey);
+                    if (shouldProceed) {
+                        window.location.href = target.href;
+                    }
+                } else {
+                    console.warn('Konnte keinen Issue-Key aus der URL extrahieren:', currentURL);
                     window.location.href = target.href;
                 }
             }
-        }
-    }, true);
+        }, true);
+    }
+
+    setupListeners();
+
 })();
