@@ -340,6 +340,16 @@
             return;
         }
 
+        // Erster Separator
+        const separator1 = document.createElement('span');
+        separator1.style.marginLeft = '10px';
+        separator1.style.backgroundColor = config.separatorColors.separator1;
+        separator1.style.width = '10px';
+        separator1.style.height = '40px';
+        separator1.style.display = 'inline-block';
+        separator1.className = 'separator-animated';
+        ul.appendChild(separator1);
+
         // Physical Browser Button erstellen
         const PBnewLi = document.createElement('li');
         const PBlink = document.createElement('a');
@@ -353,6 +363,7 @@
             this.blur();
         });
         PBnewLi.appendChild(PBlink);
+        ul.appendChild(PBnewLi);
 
         // GeoHack Button erstellen
         const geoHackLi = document.createElement('li');
@@ -367,20 +378,7 @@
             this.blur();
         });
         geoHackLi.appendChild(geoHackLink);
-
-        // Erster Separator
-        const separator1 = document.createElement('span');
-        separator1.style.marginLeft = '10px';
-        separator1.style.backgroundColor = config.separatorColors.separator1;
-        separator1.style.width = '10px';
-        separator1.style.height = '40px';
-        separator1.style.display = 'inline-block';
-        separator1.className = 'separator-animated';
-        
-        // Buttons zum Container hinzufügen
-        ul.appendChild(PBnewLi);
         ul.appendChild(geoHackLi);
-        ul.insertBefore(separator1, PBnewLi.nextSibling);
 
         // Animationseffekte hinzufügen
         setTimeout(() => {
