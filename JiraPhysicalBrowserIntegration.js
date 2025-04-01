@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Jira - Physical Browser Integration
-// @version       1.0.0
+// @version       1.0.1
 // @description   Jira - Physical Browser Integration
 // @match         https://nd-jira.unity.media.corp/*
 // @match         https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
@@ -16,7 +16,7 @@
 (function() {
     'use strict';
 
-    // Zentrale Konfiguration für bessere Wartbarkeit
+    // Zentrale Konfiguration
     const config = {
         apiUrl: 'https://nd-jira.unity.media.corp/rest/api/2/issue/',
         osmUrl: 'https://nominatim.openstreetmap.org/search?format=json',
@@ -24,12 +24,12 @@
             physicalBrowser: {
                 text: 'Physical Browser',
                 target: '_blank',
-                class: 'custom-button-class'
+                class: 'custom-button-class animated-button'
             },
             geoHack: {
                 text: 'GeoHack',
                 target: '_blank',
-                class: 'custom-button-class'
+                class: 'custom-button-class animated-button'
             }
         },
         addressData: {
@@ -51,13 +51,16 @@
         checkInterval: 1000,
         separatorColors: {
             separator1: 'white'
+        },
+        animation: {
+            numParticles: 20,
+            particleColors: ['#FF5252', '#FFEB3B', '#2196F3', '#4CAF50', '#9C27B0'],
+            animationDuration: 800,
+            particleDuration: 1500
         }
     };
 
-    /**
-     * Utility-Funktionen
-     */
-    // Fetch mit Error-Handling
+    // Fetch
     async function fetchData(url) {
         try {
             const response = await fetch(url);
@@ -117,9 +120,6 @@
         });
     }
 
-    /**
-     * Adressverarbeitung
-     */
     // Adressdaten aus JIRA abrufen
     async function getAddressData(issueKey) {
         const data = await fetchData(`${config.apiUrl}${issueKey}`);
@@ -151,9 +151,10 @@
 
     // GPS-Daten von OpenStreetMap abrufen
     async function getGPSData(plz, ort, strasse) {
+
         // URL zusammensetzen
         const osmUrl = strasse
-            ? `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`
+        ? `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`
             : `${config.osmUrl}&postalcode=${plz}&city=${ort}`;
 
         console.log("TOMMY - PLZ:", plz);
@@ -193,9 +194,111 @@
         return await getGPSData(plz, ort, strasse);
     }
 
-    /**
-     * Button-Funktionen
-     */
+    // Stylesheet für Animationen
+    function injectStyles() {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+            @keyframes popIn {
+                0% { transform: scale(0); opacity: 0; }
+                50% { transform: scale(1.2); opacity: 0.8; }
+                80% { transform: scale(0.9); opacity: 0.9; }
+                100% { transform: scale(1); opacity: 1; }
+            }
+
+            .animated-button {
+                position: relative;
+                animation: popIn ${config.animation.animationDuration}ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                transform-origin: center;
+            }
+
+            .particle {
+                position: absolute;
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 100;
+                box-shadow: 0 0 5px 2px rgba(255, 255, 255, 0.7);
+            }
+
+            @keyframes particleAnimation {
+                0% { transform: scale(1); opacity: 1; }
+                100% { transform: scale(0); opacity: 0; }
+            }
+
+            .separator-animated {
+                animation: fadeIn 500ms ease-in-out forwards;
+            }
+
+            @keyframes fadeIn {
+                0% { opacity: 0; }
+                100% { opacity: 1; }
+            }
+
+            @keyframes glow {
+                0% { box-shadow: 0 0 5px 0px rgba(255, 255, 255, 0.5); }
+                50% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.8); }
+                100% { box-shadow: 0 0 5px 0px rgba(255, 255, 255, 0.5); }
+            }
+        `;
+        document.head.appendChild(styleElement);
+    }
+
+    // Partikel-Effekt für ein Element erstellen
+    function createParticleEffect(element) {
+        const rect = element.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        for (let i = 0; i < config.animation.numParticles; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+
+            // Zufällige Größe, Farbe und Geschwindigkeit
+            const size = Math.random() * 8 + 4;
+            const colorIndex = Math.floor(Math.random() * config.animation.particleColors.length);
+            const color = config.animation.particleColors[colorIndex];
+
+            // Zufällige Richtung in alle Richtungen
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 100 + 50;
+            const speed = Math.random() * 1 + 0.5;
+
+            // Stil setzen
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.backgroundColor = color;
+            particle.style.left = `${centerX}px`;
+            particle.style.top = `${centerY}px`;
+
+            document.body.appendChild(particle);
+
+            // Animation starten
+            const start = performance.now();
+            const duration = config.animation.particleDuration * speed;
+
+            function animateParticle(timestamp) {
+                const elapsed = timestamp - start;
+                const progress = Math.min(elapsed / duration, 1);
+
+                const currentDistance = distance * progress;
+                const x = centerX + Math.cos(angle) * currentDistance;
+                const y = centerY + Math.sin(angle) * currentDistance;
+
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                particle.style.opacity = 1 - progress;
+                particle.style.transform = `scale(${1 - progress * 0.5})`;
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateParticle);
+                } else {
+                    document.body.removeChild(particle);
+                }
+            }
+
+            requestAnimationFrame(animateParticle);
+        }
+    }
+
     // Button hinzufügen
     async function addButton() {
         const issueKey = extractIssueKey(window.location.href);
@@ -222,6 +325,16 @@
             return;
         }
 
+        // Erster Separator
+        const separator1 = document.createElement('span');
+        separator1.style.marginLeft = '10px';
+        separator1.style.backgroundColor = config.separatorColors.separator1;
+        separator1.style.width = '10px';
+        separator1.style.height = '40px';
+        separator1.style.display = 'inline-block';
+        separator1.className = 'separator-animated';
+        ul.appendChild(separator1);
+
         // Physical Browser Button erstellen
         const PBnewLi = document.createElement('li');
         const PBlink = document.createElement('a');
@@ -235,6 +348,7 @@
             this.blur();
         });
         PBnewLi.appendChild(PBlink);
+        ul.appendChild(PBnewLi);
 
         // GeoHack Button erstellen
         const geoHackLi = document.createElement('li');
@@ -249,45 +363,43 @@
             this.blur();
         });
         geoHackLi.appendChild(geoHackLink);
-
-        // Erster Separator
-        const separator1 = document.createElement('span');
-        separator1.style.marginLeft = '10px';
-        separator1.style.backgroundColor = config.separatorColors.separator1;
-        separator1.style.width = '10px';
-        separator1.style.height = '40px';
-        separator1.style.display = 'inline-block';
-        ul.insertBefore(separator1, PBnewLi.nextSibling);
-
-        // Buttons zum Container hinzufügen
-        ul.appendChild(PBnewLi);
         ul.appendChild(geoHackLi);
 
+        // Animationseffekte hinzufügen
+        setTimeout(() => {
+            createParticleEffect(PBlink);
+            setTimeout(() => {
+                createParticleEffect(geoHackLink);
+            }, 200);
+        }, 100);
     }
 
     function removeButton() {
+
         // Entfernt Physical Browser Button
-        const existingPBButton = document.querySelector(`.${config.buttons.physicalBrowser.class}`);
+        const existingPBButton = document.querySelector(`.${config.buttons.physicalBrowser.class.split(' ')[0]}`);
         if (existingPBButton) {
             existingPBButton.parentElement.remove();
         }
 
         // Entfernt GeoHack Button
-        const existingGHButton = document.querySelector(`.${config.buttons.geoHack.class}`);
+        const existingGHButton = document.querySelector(`.${config.buttons.geoHack.class.split(' ')[0]}`);
         if (existingGHButton) {
             existingGHButton.parentElement.remove();
         }
 
-        // Entfernt ersten Separator
-        const separator1 = document.querySelector('span[style="margin-left: 10px; background-color: white; width: 10px; height: 40px; display: inline-block;"]');
+        // Entfernt Separator
+        const separator1 = document.querySelector('.separator-animated');
         if (separator1) {
             separator1.remove();
         }
+
+        // Entfernt alle verbleibenden Partikel
+        document.querySelectorAll('.particle').forEach(particle => {
+            particle.remove();
+        });
     }
 
-    /**
-     * Physical Browser Funktionen
-     */
     // Felder auf Physical Browser Seite befüllen
     async function populateFields(values) {
         for (const fieldName in config.fieldMappings) {
@@ -343,11 +455,9 @@
         }
     };
 
-    /**
-     * Initialisierung und Handler
-     */
     // Allgemeine Initialisierung
     window.addEventListener('load', () => {
+        injectStyles();
         removeButton();
         addButton();
         monitorUrlChanges();
@@ -355,6 +465,7 @@
 
     // Physical Browser spezifische Initialisierung
     if (window.location.href.includes('https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html')) {
+
         // Initialer Check und regelmäßiger Intervall
         if (document.readyState === 'complete' || document.readyState === 'interactive') {
             checkAndReload();
@@ -369,7 +480,7 @@
                 allLayerVisibilityElements[1].click();
                 allLayerVisibilityElements[14].click();
             } else {
-                console.error('Not enough layer-visibility elements found.');
+                console.error('TOMMY - Not enough layer-visibility elements found.');
             }
         });
 
