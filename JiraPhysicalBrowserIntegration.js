@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Jira - Physical Browser Integration
-// @version       1.0.1
+// @version       1.0.2
 // @description   Jira - Physical Browser Integration
 // @match         https://nd-jira.unity.media.corp/*
 // @match         https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
@@ -32,6 +32,10 @@
                 class: 'custom-button-class animated-button'
             }
         },
+        errorMessage: {
+            text: 'Keine GPS-Koordinaten gefunden.',
+            class: 'error-message animated-button'
+        },
         addressData: {
             plz: null,
             ort: null,
@@ -47,7 +51,7 @@
             mapAlert: 'div#map-alert',
             layerVisibility: 'span.layer-visibility'
         },
-        maxGpsAttempts: 5,
+        maxGpsAttempts: 3,
         checkInterval: 1000,
         separatorColors: {
             separator1: 'white'
@@ -149,12 +153,43 @@
         return addressData;
     }
 
+    // Fehlermeldung anzeigen
+    function showErrorMessage() {
+        const ul = document.querySelector(config.selectors.buttonContainer);
+        if (!ul) return;
+
+        // Entferne bestehende Elemente
+        removeButton();
+
+        // Erster Separator
+        const separator1 = document.createElement('span');
+        separator1.style.marginLeft = '10px';
+        separator1.style.backgroundColor = config.separatorColors.separator1;
+        separator1.style.width = '10px';
+        separator1.style.height = '40px';
+        separator1.style.display = 'inline-block';
+        separator1.className = 'separator-animated';
+        ul.appendChild(separator1);
+
+        // Fehlermeldung erstellen
+        const errorLi = document.createElement('li');
+        const errorSpan = document.createElement('span');
+        errorSpan.textContent = config.errorMessage.text;
+        errorSpan.className = config.errorMessage.class;
+        errorLi.appendChild(errorSpan);
+        ul.appendChild(errorLi);
+
+        // Animationseffekt für Fehlermeldung
+        setTimeout(() => {
+            createParticleEffect(errorSpan);
+        }, 100);
+    }
+
     // GPS-Daten von OpenStreetMap abrufen
     async function getGPSData(plz, ort, strasse) {
-
         // URL zusammensetzen
         const osmUrl = strasse
-        ? `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`
+            ? `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`
             : `${config.osmUrl}&postalcode=${plz}&city=${ort}`;
 
         console.log("TOMMY - PLZ:", plz);
@@ -177,6 +212,10 @@
         }
 
         console.error("TOMMY - Max attempts reached: No GPS data found for the given address");
+
+        // Hier wird die Fehlermeldung angezeigt, wenn keine GPS-Daten gefunden wurden
+        showErrorMessage();
+
         return null;
     }
 
@@ -237,6 +276,16 @@
                 0% { box-shadow: 0 0 5px 0px rgba(255, 255, 255, 0.5); }
                 50% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.8); }
                 100% { box-shadow: 0 0 5px 0px rgba(255, 255, 255, 0.5); }
+            }
+
+            .error-message {
+                color: #FF5252;
+                font-weight: bold;
+                padding: 5px 10px;
+                border-radius: 3px;
+                background-color: rgba(255, 82, 82, 0.1);
+                border: 1px solid #FF5252;
+                margin-left: 10px;
             }
         `;
         document.head.appendChild(styleElement);
@@ -375,7 +424,6 @@
     }
 
     function removeButton() {
-
         // Entfernt Physical Browser Button
         const existingPBButton = document.querySelector(`.${config.buttons.physicalBrowser.class.split(' ')[0]}`);
         if (existingPBButton) {
@@ -386,6 +434,12 @@
         const existingGHButton = document.querySelector(`.${config.buttons.geoHack.class.split(' ')[0]}`);
         if (existingGHButton) {
             existingGHButton.parentElement.remove();
+        }
+
+        // Entfernt Fehlermeldung
+        const errorMessage = document.querySelector(`.${config.errorMessage.class.split(' ')[0]}`);
+        if (errorMessage) {
+            errorMessage.parentElement.remove();
         }
 
         // Entfernt Separator
