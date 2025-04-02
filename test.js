@@ -153,9 +153,40 @@
         return addressData;
     }
 
+    // Fehlermeldung anzeigen
+    function showErrorMessage() {
+        const ul = document.querySelector(config.selectors.buttonContainer);
+        if (!ul) return;
+        
+        // Entferne bestehende Elemente
+        removeButton();
+        
+        // Erster Separator
+        const separator1 = document.createElement('span');
+        separator1.style.marginLeft = '10px';
+        separator1.style.backgroundColor = config.separatorColors.separator1;
+        separator1.style.width = '10px';
+        separator1.style.height = '40px';
+        separator1.style.display = 'inline-block';
+        separator1.className = 'separator-animated';
+        ul.appendChild(separator1);
+
+        // Fehlermeldung erstellen
+        const errorLi = document.createElement('li');
+        const errorSpan = document.createElement('span');
+        errorSpan.textContent = config.errorMessage.text;
+        errorSpan.className = config.errorMessage.class;
+        errorLi.appendChild(errorSpan);
+        ul.appendChild(errorLi);
+
+        // Animationseffekt für Fehlermeldung
+        setTimeout(() => {
+            createParticleEffect(errorSpan);
+        }, 100);
+    }
+
     // GPS-Daten von OpenStreetMap abrufen
     async function getGPSData(plz, ort, strasse) {
-
         // URL zusammensetzen
         const osmUrl = strasse
         ? `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`
@@ -181,6 +212,10 @@
         }
 
         console.error("TOMMY - Max attempts reached: No GPS data found for the given address");
+        
+        // Hier wird die Fehlermeldung angezeigt, wenn keine GPS-Daten gefunden wurden
+        showErrorMessage();
+        
         return null;
     }
 
@@ -202,7 +237,7 @@
     function injectStyles() {
         const styleElement = document.createElement('style');
         styleElement.textContent = `
-            @keyframes pop {
+            @keyframes popIn {
                 0% { transform: scale(0); opacity: 0; }
                 50% { transform: scale(1.2); opacity: 0.8; }
                 80% { transform: scale(0.9); opacity: 0.9; }
@@ -211,7 +246,7 @@
 
             .animated-button {
                 position: relative;
-                animation: pop ${config.animation.animationDuration}ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                animation: popIn ${config.animation.animationDuration}ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
                 transform-origin: center;
             }
 
@@ -313,33 +348,7 @@
         }
     }
 
-    // Fehlermeldung anzeigen statt Buttons
-    function showErrorMessage(ul) {
-        // Erster Separator
-        const separator1 = document.createElement('span');
-        separator1.style.marginLeft = '10px';
-        separator1.style.backgroundColor = config.separatorColors.separator1;
-        separator1.style.width = '10px';
-        separator1.style.height = '40px';
-        separator1.style.display = 'inline-block';
-        separator1.className = 'separator-animated';
-        ul.appendChild(separator1);
-
-        // Fehlermeldung erstellen
-        const errorLi = document.createElement('li');
-        const errorSpan = document.createElement('span');
-        errorSpan.textContent = config.errorMessage.text;
-        errorSpan.className = config.errorMessage.class;
-        errorLi.appendChild(errorSpan);
-        ul.appendChild(errorLi);
-
-        // Animationseffekt für Fehlermeldung
-        setTimeout(() => {
-            createParticleEffect(errorSpan);
-        }, 100);
-    }
-
-    // Button hinzufügen oder Fehlermeldung anzeigen
+    // Button hinzufügen
     async function addButton() {
         const issueKey = extractIssueKey(window.location.href);
         if (!issueKey) return;
@@ -352,24 +361,18 @@
             }
         }
 
-        // GPS-Daten abrufen
+        // GPS-Daten abrufen und Buttons hinzufügen
         const gpsData = await checkCondition(issueKey);
+        if (!gpsData) return; // Die Fehlermeldung wird bereits in getGPSData gezeigt
+
+        const { lat, lon } = gpsData;
+        const PBURL = generatePBURL(lat, lon);
+        const geohackURL = generateGeoHackURL(lat, lon);
         const ul = document.querySelector(config.selectors.buttonContainer);
         if (!ul) {
             console.error("TOMMY - Could not find element", config.selectors.buttonContainer);
             return;
         }
-
-        // Wenn keine GPS-Daten vorhanden, Fehlermeldung anzeigen
-        if (!gpsData) {
-            showErrorMessage(ul);
-            return;
-        }
-
-        // Ansonsten die Buttons hinzufügen
-        const { lat, lon } = gpsData;
-        const PBURL = generatePBURL(lat, lon);
-        const geohackURL = generateGeoHackURL(lat, lon);
 
         // Erster Separator
         const separator1 = document.createElement('span');
