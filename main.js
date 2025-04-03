@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.27
+// @version      1.0.28
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -58,10 +58,10 @@
 
     const COMMON_STYLES = {
         backgroundColor: '#ffffff',
-        border: '1px solid rgba(80, 80, 80, 0.2)',
+        border: '1px solid rgba(80, 80, 80, 0.1)',
         cursor: 'pointer',
-        borderRadius: '8px',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+        borderRadius: '5px',
+        boxShadow: '0 6px 12px rgba(0, 0, 0, 0.12)',
         fontFamily: '"-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif"',
     };
 
@@ -189,10 +189,18 @@
         attachCategoryListeners(categoryItem, subMenu) {
             categoryItem.addEventListener('mouseenter', () => {
                 categoryItem.style.backgroundColor = '#ECEDF0';
-                categoryItem.style.borderRadius = '5px';
-                categoryItem.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
+                categoryItem.style.borderRadius = '6px';
+                categoryItem.style.transition = 'background-color 0.2s ease, border-radius 0.2s ease';
                 subMenu.style.display = 'block';
+                subMenu.style.opacity = '0';
+                subMenu.style.transform = 'scale(0.95)';
+
+                setTimeout(() => {
+                    subMenu.style.opacity = '1';
+                    subMenu.style.transform = 'scale(1)';
+                }, 400);
             });
+
 
             categoryItem.addEventListener('mouseleave', () => {
                 categoryItem.style.backgroundColor = 'transparent';
@@ -286,6 +294,7 @@
                 this.menu.style.display = 'block';
                 this.menu.style.opacity = '1';
                 this.menu.style.transform = 'scale(1)';
+                this.menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease';
             }
         }
 
@@ -295,6 +304,7 @@
             this.menu.style.transform = 'scale(0.9)';
             this.menu.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.1)';
             this.menu.style.position = 'fixed';
+            this.menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease';
 
             let clickX = event.clientX;
             let clickY = event.clientY;
@@ -318,7 +328,8 @@
             setTimeout(() => {
                 this.menu.style.opacity = '1';
                 this.menu.style.transform = 'scale(1)';
-                this.menu.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.15)';
+                this.menu.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.12)';
+                this.menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease';
             }, 0);
         }
 
@@ -326,6 +337,7 @@
             if (!this.menu.contains(event.target)) {
                 this.menu.style.transform = 'scale(0.9)';
                 this.menu.style.opacity = '0';
+                this.menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease';
 
                 setTimeout(() => {
                     this.menu.style.display = 'none';
