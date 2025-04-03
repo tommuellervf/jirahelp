@@ -1,562 +1,425 @@
 // ==UserScript==
-// @name          Jira - Physical Browser Integration
-// @version       1.0.3
-// @description   Jira - Physical Browser Integration
-// @match         https://nd-jira.unity.media.corp/*
-// @match         https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
-// @updateURL     https://raw.githubusercontent.com/tommuellervf/jirahelp/main/JiraPhysicalBrowserIntegration.js
-// @downloadURL   https://raw.githubusercontent.com/tommuellervf/jirahelp/main/JiraPhysicalBrowserIntegration.js
-// @grant         GM_openInTab
-// @grant         GM.setValue
-// @grant         GM.getValue
+// @name         Hauptskript für Kontextmenü
+// @namespace    none
+// @version      1.0.27
+// @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
+// @include      https://nd-jira.unity.media.corp/*
+// @grant        GM.xmlHttpRequest
+// @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
+// @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
 // @noframes
-// @run-at document-end
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    // Zentrale Konfiguration
-    const config = {
-        apiUrl: 'https://nd-jira.unity.media.corp/rest/api/2/issue/',
-        osmUrl: 'https://nominatim.openstreetmap.org/search?format=json',
-        buttons: {
-            physicalBrowser: {
-                text: 'Physical Browser',
-                target: '_blank',
-                class: 'custom-button-class animated-button'
-            },
-            geoHack: {
-                text: 'GeoHack',
-                target: '_blank',
-                class: 'custom-button-class animated-button'
+    const processedFrames = new WeakSet();
+
+    function addTinyMCEHandler() {
+        const iframes = document.querySelectorAll('iframe.tox-edit-area__iframe');
+        iframes.forEach(iframe => {
+            if (!processedFrames.has(iframe) && iframe.contentDocument) {
+                const addListeners = () => {
+                    iframe.contentDocument.addEventListener('contextmenu', function(event) {
+                        event.preventDefault();
+                        const editor = tinymce.get(iframe.id.replace('_ifr', ''));
+                        if (editor && editor.initialized) {
+                            editor.focus();
+                            contextMenuInstance.menu.style.left = `${event.clientX}px`;
+                            contextMenuInstance.menu.style.top = `${event.clientY}px`;
+                            contextMenuInstance.menu.style.position = 'fixed';
+                            setTimeout(() => {
+                                contextMenuInstance.targetElement = editor;
+                                contextMenuInstance.isTinyMCE = true;
+                                contextMenuInstance.positionMenu(event, true);
+                            }, 170);
+                        }
+                    });
+
+                    iframe.contentDocument.addEventListener('click', function() {
+                        contextMenuInstance.menu.style.transform = 'scale(0.9)';
+                        contextMenuInstance.menu.style.opacity = '0';
+                        setTimeout(() => {
+                            contextMenuInstance.menu.style.display = 'none';
+                        }, 200);
+                    });
+                };
+
+                if (iframe.contentDocument.readyState === 'complete') {
+                    addListeners();
+                } else {
+                    iframe.contentDocument.addEventListener('load', addListeners);
+                }
+
+                processedFrames.add(iframe);
             }
-        },
-        errorMessage: {
-            text: 'Adresse fehlerhaft?',
-            class: 'error-message animated-button'
-        },
-        addressData: {
-            plz: null,
-            ort: null,
-            strasse: null
-        },
-        fieldMappings: {
-            'zip_code': 'plz',
-            'city_name': 'ort',
-            'street_name': 'strasse'
-        },
-        selectors: {
-            buttonContainer: 'ul.aui-nav',
-            mapAlert: 'div#map-alert',
-            layerVisibility: 'span.layer-visibility'
-        },
-        maxGpsAttempts: 3,
-        checkInterval: 1000,
-        separatorColors: {
-            separator1: 'white'
-        },
-        animation: {
-            numParticles: 20,
-            particleColors: ['#FF5252', '#FFEB3B', '#2196F3', '#4CAF50', '#9C27B0'],
-            animationDuration: 800,
-            particleDuration: 1500
-        }
+        });
+    }
+
+    // COMMON_STYLES verbessern
+    const COMMON_STYLES = {
+        backgroundColor: '#ffffff',
+        border: '1px solid rgba(80, 80, 80, 0.1)',  // Subtilere Umrandung
+        cursor: 'pointer',
+        borderRadius: '10px',                       // Erhöhter Radius
+        boxShadow: '0 6px 16px rgba(0, 0, 0, 0.12)', // Weicherer Schatten
+        fontFamily: '"-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif"',
     };
+    
+    // Verbesserte Animationen
+    this.menu.style.transition = 'opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease';
+    
+    // Hover-Effekte in attachCategoryListeners
+    categoryItem.addEventListener('mouseenter', () => {
+        categoryItem.style.backgroundColor = '#ECEDF0';
+        categoryItem.style.borderRadius = '8px';
+        categoryItem.style.transition = 'background-color 0.2s ease, border-radius 0.2s ease';
+        subMenu.style.display = 'block';
+        subMenu.style.opacity = '0';
+        subMenu.style.transform = 'scale(0.95)';
+        
+        // Animation für das Untermenü
+        setTimeout(() => {
+            subMenu.style.opacity = '1';
+            subMenu.style.transform = 'scale(1)';
+        }, 10);
+    });
 
-    // Fetch
-    async function fetchData(url) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error(`Error fetching data from ${url}:`, error);
-            return null;
+    class ContextMenu {
+        constructor() {
+            this.menuData = this.loadMenuData();
+            this.targetElement = null;
+            this.isTinyMCE = false;
+            this.menu = this.createMainMenu();
+            this.boundHandleContextMenu = this.handleContextMenu.bind(this);
+            this.boundHandleDocumentClick = this.handleDocumentClick.bind(this);
+            this.initializeEventListeners();
         }
-    }
 
-    // Issue-Key aus URL extrahieren
-    function extractIssueKey(url) {
-        const match = url.match(/ANDE-\d+/);
-        return match ? match[0] : null;
-    }
+        loadMenuData() {
+            try {
+                const data = localStorage.getItem("menuData");
+                return data ? JSON.parse(data) : [];
+            } catch (error) {
+                console.error('Failed to load menu data:', error);
+                return [];
+            }
+        }
 
-    // Grad in DMS-Format umwandeln
-    function convertToDMS(degrees) {
-        const d = Math.floor(degrees);
-        const m = Math.floor((degrees - d) * 60);
-        const s = Math.round((degrees - d - m / 60) * 3600);
-        return { d, m, s };
-    }
+        createElement(tag, styles, innerText = '') {
+            const element = document.createElement(tag);
+            Object.assign(element.style, styles);
+            if (innerText) element.innerText = innerText;
+            return element;
+        }
 
-    // PB-URL generieren
-    function generatePBURL(lat, lon) {
-        return `https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html#/map/${lat},${lon},20z`;
-    }
+        createMainMenu() {
+            const menu = this.createElement('div', {
+                ...COMMON_STYLES,
+                position: 'absolute',
+                padding: '2px',
+                display: 'none',
+                zIndex: '10000',
+                width: '200px'
+            });
 
-    // GeoHack-URL generieren
-    function generateGeoHackURL(lat, lon) {
-        const latDMS = convertToDMS(Math.abs(lat));
-        const lonDMS = convertToDMS(Math.abs(lon));
-        const latDir = lat >= 0 ? 'N' : 'S';
-        const lonDir = lon >= 0 ? 'E' : 'W';
-        return `https://geohack.toolforge.org/geohack.php?params=${latDMS.d}_${latDMS.m}_${latDMS.s}_${latDir}_${lonDMS.d}_${lonDMS.m}_${lonDMS.s}_${lonDir}`;
-    }
-
-    // Auf Element warten
-    async function waitForElement(selector) {
-        return new Promise(resolve => {
-            const elements = document.querySelectorAll(selector);
-            if (elements.length > 0) {
-                return resolve(elements);
+            if (Array.isArray(this.menuData)) {
+                this.menuData.forEach((category, index) => {
+                    menu.appendChild(this.createCategoryItem(category, index));
+                });
             }
 
-            const observer = new MutationObserver(() => {
-                const elements = document.querySelectorAll(selector);
-                if (elements.length > 0) {
-                    resolve(elements);
-                    observer.disconnect();
+            document.body.appendChild(menu);
+            return menu;
+        }
+
+        createCategoryItem(category, index) {
+            const categoryItem = this.createElement('div', {
+                padding: '5px',
+                position: 'relative',
+                borderBottom: index < this.menuData.length - 1 ? '1px solid #ddd' : ''
+            }, category.label);
+
+            const subMenu = this.createSubMenu(category.items || []);
+            this.attachCategoryListeners(categoryItem, subMenu);
+            categoryItem.appendChild(subMenu);
+            return categoryItem;
+        }
+
+        createSubMenu(items) {
+            const subMenu = this.createElement('div', {
+                ...COMMON_STYLES,
+                position: 'absolute',
+                padding: '2px',
+                left: '90%',
+                display: 'none',
+                width: '350px',
+                zIndex: '11000',
+            });
+
+            const isMouseOverSubMenu = (event) => {
+                const rect = subMenu.getBoundingClientRect();
+                return (
+                    event.clientX >= rect.left &&
+                    event.clientX <= rect.right &&
+                    event.clientY >= rect.top &&
+                    event.clientY <= rect.bottom
+                );
+            };
+
+            const isMouseAtTop = (event) => {
+                const mouseY = event.clientY;
+                const windowHeight = window.innerHeight;
+                return mouseY < windowHeight / 2;
+            };
+
+            window.addEventListener('mousemove', (event) => {
+                if (!isMouseOverSubMenu(event)) {
+                    if (isMouseAtTop(event)) {
+                        subMenu.style.top = '0';
+                        subMenu.style.bottom = '';
+                    } else {
+                        subMenu.style.top = '';
+                        subMenu.style.bottom = '0';
+                    }
                 }
             });
 
-            observer.observe(document.body, { childList: true, subtree: true });
-        });
-    }
+            items.forEach((snippet, index) => {
+                if (snippet && snippet.label) {
+                    const isLastItem = index === items.length - 1;
+                    subMenu.appendChild(this.createSubMenuItem(snippet, isLastItem));
+                }
+            });
 
-    // Adressdaten aus JIRA abrufen
-    async function getAddressData(issueKey) {
-        const data = await fetchData(`${config.apiUrl}${issueKey}`);
-        if (!data) return null;
-
-        const { customfield_14413: plz, customfield_13702: ort, customfield_13700: strasse } = data.fields;
-        if (!plz || !ort) {
-            console.error("TOMMY - Missing address fields");
-            return null;
+            return subMenu;
         }
 
-        // Adressdaten aufbereiten
-        const processedStrasse = strasse
-        ? strasse.replace(/straße/gi, 'str.').replace(/strasse/gi, 'str.')
-        : null;
+        createSubMenuItem(snippet, isLastItem) {
+            const subMenuItem = this.createElement('div', {
+                padding: '5px',
+                cursor: 'pointer',
+                borderBottom: isLastItem ? 'none' : '1px solid #ddd'
+            }, snippet.label);
 
-        const addressData = {
-            plz,
-            ort,
-            strasse: processedStrasse
-        };
+            this.attachSubMenuListeners(subMenuItem, snippet.text);
+            return subMenuItem;
+        }
 
-        // Werte in config und GM-Storage speichern
-        Object.assign(config.addressData, addressData);
-        await GM.setValue('customFieldValues', addressData);
+        attachCategoryListeners(categoryItem, subMenu) {
+            categoryItem.addEventListener('mouseenter', () => {
+                categoryItem.style.backgroundColor = '#ECEDF0';
+                categoryItem.style.borderRadius = '5px';
+                categoryItem.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
+                subMenu.style.display = 'block';
+            });
 
-        return addressData;
-    }
+            categoryItem.addEventListener('mouseleave', () => {
+                categoryItem.style.backgroundColor = 'transparent';
+                categoryItem.style.borderRadius = '0px';
+                subMenu.style.display = 'none';
+            });
+        }
 
-    // Fehlermeldung anzeigen
-    function showErrorMessage() {
-        const ul = document.querySelector(config.selectors.buttonContainer);
-        if (!ul) return;
+        attachSubMenuListeners(subMenuItem, snippetText) {
+            subMenuItem.addEventListener('mouseenter', () => {
+                subMenuItem.style.backgroundColor = '#ECEDF0';
+                subMenuItem.style.borderRadius = '5px';
+            });
 
-        // Entferne bestehende Elemente
-        removeButton();
+            subMenuItem.addEventListener('mouseleave', () => {
+                subMenuItem.style.backgroundColor = 'transparent';
+                subMenuItem.style.borderRadius = '0px';
+            });
 
-        // Erster Separator
-        const separator1 = document.createElement('span');
-        separator1.style.marginLeft = '10px';
-        separator1.style.backgroundColor = config.separatorColors.separator1;
-        separator1.style.width = '10px';
-        separator1.style.height = '40px';
-        separator1.style.display = 'inline-block';
-        separator1.className = 'separator-animated';
-        ul.appendChild(separator1);
+            subMenuItem.addEventListener('click', () => {
+                this.handleClick(snippetText);
+            });
+        }
 
-        // Fehlermeldung erstellen
-        const errorLi = document.createElement('li');
-        const errorSpan = document.createElement('span');
-        errorSpan.textContent = config.errorMessage.text;
-        errorSpan.className = config.errorMessage.class;
-        errorLi.appendChild(errorSpan);
-        ul.appendChild(errorLi);
-
-        // Animationseffekt für Fehlermeldung hinzufügen (gleich wie bei Buttons)
-        setTimeout(() => {
-            createParticleEffect(errorSpan);
-            // Zusätzliche Pulsier-Animation für den Fehlertext
-            errorSpan.style.animation = `popIn ${config.animation.animationDuration}ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, glow 1.5s ease-in-out infinite`;
-        }, 100);
-    }
-
-    // GPS-Daten von OpenStreetMap abrufen
-    async function getGPSData(plz, ort, strasse) {
-        // URL zusammensetzen
-        const osmUrl = strasse
-            ? `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`
-            : `${config.osmUrl}&postalcode=${plz}&city=${ort}`;
-
-        console.log("TOMMY - PLZ:", plz);
-        console.log("TOMMY - Ort:", ort);
-        console.log("TOMMY - Strasse:", strasse);
-
-        // Mehrere Versuche, GPS-Daten zu bekommen
-        for (let attempt = 0; attempt < config.maxGpsAttempts; attempt++) {
+        async getClipboardText() {
             try {
-                const osmData = await fetchData(osmUrl);
-                if (osmData && osmData.length > 0) {
-                    const { lat, lon } = osmData[0];
-                    return { lat, lon };
-                } else {
-                    console.error(`TOMMY - Attempt ${attempt + 1}: No GPS data found for the given address`);
-                }
-            } catch (error) {
-                console.error(`TOMMY - Attempt ${attempt + 1}: Error fetching GPS data -`, error);
+                const text = await navigator.clipboard.readText();
+                return /^[\d\-\/]+$/.test(text) ? text : '00000000';
+            } catch (err) {
+                console.error('Failed to read clipboard contents: ', err);
+                return '00000000';
             }
         }
 
-        console.error("TOMMY - Max attempts reached: No GPS data found for the given address");
+        async replacePlaceholder(text) {
+            if (!text) return '';
 
-        // Hier wird die Fehlermeldung angezeigt, wenn keine GPS-Daten gefunden wurden
-        showErrorMessage();
+            if (text.includes("%%t")) {
+                const clipboardText = await this.getClipboardText();
+                text = text.replace("%%t", clipboardText);
+            }
 
-        return null;
-    }
+            const csElement = document.getElementById("customfield_10200-val");
+            const csValue = csElement?.innerText.trim() || '00000000';
+            text = text.replace("%%CS", csValue);
 
-    // Prüft Bedingungen für GPS-Daten
-    async function checkCondition(issueKey) {
-        const data = await fetchData(`${config.apiUrl}${issueKey}`);
-        if (!data) return null;
+            if (text.includes("%%ASSIGNEE")) {
+                const assigneeElement = document.querySelector('#assignee-val > span.user-hover-replaced[rel]');
+                const userId = assigneeElement?.getAttribute('rel') || 'NAME';
+                text = text.replace("%%ASSIGNEE", `[~${userId}]`);
+            }
 
-        const { assignee, customfield_14413: plz, customfield_13702: ort, customfield_13700: strasse } = data.fields;
-        if (!assignee || !plz || !ort) {
-            console.error("TOMMY - Missing address fields or assignee");
-            return null;
+            return text;
         }
 
-        return await getGPSData(plz, ort, strasse);
-    }
+        async insertText(elem, text) {
+            if (!elem || !text) return;
 
-    // Stylesheet für Animationen
-    function injectStyles() {
-        const styleElement = document.createElement('style');
-        styleElement.textContent = `
-            @keyframes popIn {
-                0% { transform: scale(0); opacity: 0; }
-                50% { transform: scale(1.2); opacity: 0.8; }
-                80% { transform: scale(0.9); opacity: 0.9; }
-                100% { transform: scale(1); opacity: 1; }
-            }
+            if (this.isTinyMCE) {
+                elem.insertContent(text);
+                this.isTinyMCE = false;
+                document.execCommand("insertText", false, text);
+            } else if (elem.tagName === 'INPUT' || elem.tagName === 'TEXTAREA') {
+                const startPos = elem.selectionStart;
+                elem.value = elem.value.slice(0, startPos) + text + elem.value.slice(elem.selectionEnd);
+                elem.selectionStart = elem.selectionEnd = startPos + text.length;
 
-            .animated-button {
-                position: relative;
-                animation: popIn ${config.animation.animationDuration}ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-                transform-origin: center;
-            }
-
-            .particle {
-                position: absolute;
-                border-radius: 50%;
-                pointer-events: none;
-                z-index: 100;
-                box-shadow: 0 0 5px 2px rgba(255, 255, 255, 0.7);
-            }
-
-            @keyframes particleAnimation {
-                0% { transform: scale(1); opacity: 1; }
-                100% { transform: scale(0); opacity: 0; }
-            }
-
-            .separator-animated {
-                animation: fadeIn 500ms ease-in-out forwards;
-            }
-
-            @keyframes fadeIn {
-                0% { opacity: 0; }
-                100% { opacity: 1; }
-            }
-
-            @keyframes glow {
-                0% { box-shadow: 0 0 5px 0px rgba(255, 82, 82, 0.5); }
-                50% { box-shadow: 0 0 15px 5px rgba(255, 82, 82, 0.8); }
-                100% { box-shadow: 0 0 5px 0px rgba(255, 82, 82, 0.5); }
-            }
-
-            .error-message {
-                color: #FF5252;
-                font-weight: bold;
-                padding: 5px 10px;
-                border-radius: 3px;
-                background-color: rgba(255, 82, 82, 0.1);
-                border: 1px solid #FF5252;
-                margin-left: 10px;
-                display: inline-block;
-                cursor: pointer;
-            }
-        `;
-        document.head.appendChild(styleElement);
-    }
-
-    // Partikel-Effekt für ein Element erstellen
-    function createParticleEffect(element) {
-        const rect = element.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-
-        for (let i = 0; i < config.animation.numParticles; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-
-            // Zufällige Größe, Farbe und Geschwindigkeit
-            const size = Math.random() * 8 + 4;
-            const colorIndex = Math.floor(Math.random() * config.animation.particleColors.length);
-            const color = config.animation.particleColors[colorIndex];
-
-            // Zufällige Richtung in alle Richtungen
-            const angle = Math.random() * Math.PI * 2;
-            const distance = Math.random() * 100 + 50;
-            const speed = Math.random() * 1 + 0.5;
-
-            // Stil setzen
-            particle.style.width = `${size}px`;
-            particle.style.height = `${size}px`;
-            particle.style.backgroundColor = color;
-            particle.style.left = `${centerX}px`;
-            particle.style.top = `${centerY}px`;
-
-            document.body.appendChild(particle);
-
-            // Animation starten
-            const start = performance.now();
-            const duration = config.animation.particleDuration * speed;
-
-            function animateParticle(timestamp) {
-                const elapsed = timestamp - start;
-                const progress = Math.min(elapsed / duration, 1);
-
-                const currentDistance = distance * progress;
-                const x = centerX + Math.cos(angle) * currentDistance;
-                const y = centerY + Math.sin(angle) * currentDistance;
-
-                particle.style.left = `${x}px`;
-                particle.style.top = `${y}px`;
-                particle.style.opacity = 1 - progress;
-                particle.style.transform = `scale(${1 - progress * 0.5})`;
-
-                if (progress < 1) {
-                    requestAnimationFrame(animateParticle);
-                } else {
-                    document.body.removeChild(particle);
+                const startMarkPos = startPos + text.indexOf("NAME");
+                if (startMarkPos !== -1) {
+                    elem.selectionStart = startMarkPos;
+                    elem.selectionEnd = startMarkPos + "NAME".length;
                 }
             }
-
-            requestAnimationFrame(animateParticle);
+            elem.focus();
         }
-    }
 
-    // Button hinzufügen
-    async function addButton() {
-        const issueKey = extractIssueKey(window.location.href);
-        if (!issueKey) return;
+        initializeEventListeners() {
+            document.addEventListener('contextmenu', this.boundHandleContextMenu);
+            document.addEventListener('click', this.boundHandleDocumentClick);
+        }
 
-        // Adressdaten abrufen, wenn wir auf JIRA-Seite sind
-        if (window.location.href.startsWith('https://nd-jira.unity.media.corp/browse/')) {
-            const values = await getAddressData(issueKey);
-            if (values) {
-                await GM.setValue('customFieldValues', values);
+        handleContextMenu(event) {
+            const target = event.target;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                event.preventDefault();
+                this.targetElement = target;
+                this.isTinyMCE = false;
+                this.positionMenu(event, true);
+
+                this.menu.style.visibility = 'visible';
+                this.menu.style.display = 'block';
+                this.menu.style.opacity = '1';
+                this.menu.style.transform = 'scale(1)';
             }
         }
 
-        // GPS-Daten abrufen und Buttons hinzufügen
-        const gpsData = await checkCondition(issueKey);
-        if (!gpsData) return;
+        positionMenu(event) {
+            this.menu.style.display = 'block';
+            this.menu.style.opacity = '0';
+            this.menu.style.transform = 'scale(0.9)';
+            this.menu.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.1)';
+            this.menu.style.position = 'fixed';
 
-        const { lat, lon } = gpsData;
-        const PBURL = generatePBURL(lat, lon);
-        const geohackURL = generateGeoHackURL(lat, lon);
-        const ul = document.querySelector(config.selectors.buttonContainer);
-        if (!ul) {
-            console.error("TOMMY - Could not find element", config.selectors.buttonContainer);
-            return;
-        }
+            let clickX = event.clientX;
+            let clickY = event.clientY;
 
-        // Erster Separator
-        const separator1 = document.createElement('span');
-        separator1.style.marginLeft = '10px';
-        separator1.style.backgroundColor = config.separatorColors.separator1;
-        separator1.style.width = '10px';
-        separator1.style.height = '40px';
-        separator1.style.display = 'inline-block';
-        separator1.className = 'separator-animated';
-        ul.appendChild(separator1);
+            if (event.target.ownerDocument !== document) {
+                const iframe = event.target.ownerDocument.defaultView.frameElement;
+                const iframeRect = iframe.getBoundingClientRect();
+                clickX = event.clientX + iframeRect.left;
+                clickY = event.clientY + iframeRect.top;
+            }
 
-        // Physical Browser Button erstellen
-        const PBnewLi = document.createElement('li');
-        const PBlink = document.createElement('a');
-        PBlink.href = PBURL;
-        PBlink.textContent = config.buttons.physicalBrowser.text;
-        PBlink.target = config.buttons.physicalBrowser.target;
-        PBlink.className = config.buttons.physicalBrowser.class;
-        PBlink.addEventListener('click', function(event) {
-            event.preventDefault();
-            GM_openInTab(this.href, true);
-            this.blur();
-        });
-        PBnewLi.appendChild(PBlink);
-        ul.appendChild(PBnewLi);
+            const { offsetHeight, offsetWidth } = this.menu;
+            const { innerHeight, innerWidth } = window;
 
-        // GeoHack Button erstellen
-        const geoHackLi = document.createElement('li');
-        const geoHackLink = document.createElement('a');
-        geoHackLink.href = geohackURL;
-        geoHackLink.textContent = config.buttons.geoHack.text;
-        geoHackLink.target = config.buttons.geoHack.target;
-        geoHackLink.className = config.buttons.geoHack.class;
-        geoHackLink.addEventListener('click', function(event) {
-            event.preventDefault();
-            GM_openInTab(this.href, true);
-            this.blur();
-        });
-        geoHackLi.appendChild(geoHackLink);
-        ul.appendChild(geoHackLi);
+            const top = (clickY + offsetHeight > innerHeight) ? innerHeight - offsetHeight - 5 : clickY;
+            const left = (clickX + offsetWidth > innerWidth) ? innerWidth - offsetWidth - 5 : clickX;
 
-        // Animationseffekte hinzufügen
-        setTimeout(() => {
-            createParticleEffect(PBlink);
+            this.menu.style.top = `${top}px`;
+            this.menu.style.left = `${left}px`;
+
             setTimeout(() => {
-                createParticleEffect(geoHackLink);
-            }, 200);
-        }, 100);
-    }
-
-    function removeButton() {
-        // Entfernt Physical Browser Button
-        const existingPBButton = document.querySelector(`.${config.buttons.physicalBrowser.class.split(' ')[0]}`);
-        if (existingPBButton) {
-            existingPBButton.parentElement.remove();
+                this.menu.style.opacity = '1';
+                this.menu.style.transform = 'scale(1)';
+                this.menu.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.15)';
+            }, 0);
         }
 
-        // Entfernt GeoHack Button
-        const existingGHButton = document.querySelector(`.${config.buttons.geoHack.class.split(' ')[0]}`);
-        if (existingGHButton) {
-            existingGHButton.parentElement.remove();
+        handleDocumentClick(event) {
+            if (!this.menu.contains(event.target)) {
+                this.menu.style.transform = 'scale(0.9)';
+                this.menu.style.opacity = '0';
+
+                setTimeout(() => {
+                    this.menu.style.display = 'none';
+                }, 200);
+            }
         }
 
-        // Entfernt Fehlermeldung
-        const errorMessage = document.querySelector(`.${config.errorMessage.class.split(' ')[0]}`);
-        if (errorMessage) {
-            errorMessage.parentElement.remove();
+        async handleClick(snippetText) {
+            let textToInsert = await this.replacePlaceholder(snippetText);
+
+            if (this.isTinyMCE) {
+                textToInsert = this.formatText(textToInsert);
+                this.targetElement.insertContent(textToInsert);
+
+                setTimeout(() => {
+                    const body = this.targetElement.getBody();
+                    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, null, false);
+
+                    let node;
+                    while (node = walker.nextNode()) {
+                        const position = node.nodeValue.indexOf('NAME');
+                        if (position !== -1) {
+                            const range = this.targetElement.dom.createRng();
+                            range.setStart(node, position);
+                            range.setEnd(node, position + 4);
+                            this.targetElement.selection.setRng(range);
+                            break;
+                        }
+                    }
+                }, 100);
+
+                this.isTinyMCE = false;
+            } else {
+                this.insertText(this.targetElement, textToInsert);
+            }
+
+            this.menu.style.display = 'none';
         }
 
-        // Entfernt Separator
-        const separator1 = document.querySelector('.separator-animated');
-        if (separator1) {
-            separator1.remove();
+        formatText(text) {
+            return text
+                .replace(/\*([\s\S]*?)\*/g, '<b>$1</b>')
+                .replace(/{color:(.*?)}/g, '<span style="color:$1;">')
+                .replace(/{color}/g, '</span>')
+                .replace(/\n/g, '<br>')
+                .replace(/\[~(.*?)\]/g, (match, userId) => `<a class="user-hover" rel="${userId}" id="user_${userId}" href="/secure/ViewProfile.jspa?name=${userId}" data-username="${userId}">@${userId}</a>`);
         }
 
-        // Entfernt alle verbleibenden Partikel
-        document.querySelectorAll('.particle').forEach(particle => {
-            particle.remove();
-        });
-    }
+        destroy() {
+            document.removeEventListener('contextmenu', this.boundHandleContextMenu);
+            document.removeEventListener('click', this.boundHandleDocumentClick);
 
-    // Felder auf Physical Browser Seite befüllen
-    async function populateFields(values) {
-        for (const fieldName in config.fieldMappings) {
-            const fieldSelector = `[data-name="${fieldName}"], [name="${fieldName}"]`;
-            const field = document.querySelector(fieldSelector);
-            if (field) {
-                const value = values[config.fieldMappings[fieldName]];
-                if (value !== undefined) {
-                    field.value = value;
-                    field.dispatchEvent(new Event('input', { bubbles: true }));
-                }
+            if (this.menu && this.menu.parentNode) {
+                this.menu.parentNode.removeChild(this.menu);
             }
         }
     }
 
-    // Prüfen, ob alle Felder vorhanden sind
-    function areAllFieldsPresent() {
-        return Object.keys(config.fieldMappings).every(fieldName => {
-            const fieldSelector = `[data-name="${fieldName}"], [name="${fieldName}"]`;
-            return document.querySelector(fieldSelector);
-        });
-    }
+    let contextMenuInstance = null;
 
-    // Wenn Felder bereit sind, diese befüllen
-    function onFieldsReady(values) {
-        if (areAllFieldsPresent()) {
-            populateFields(values);
+    window.addEventListener('unload', () => {
+        if (contextMenuInstance) {
+            contextMenuInstance.destroy();
         }
-    }
-
-    // URL-Änderungen überwachen
-    function monitorUrlChanges() {
-        let lastUrl = location.href;
-        new MutationObserver(() => {
-            const currentUrl = location.href;
-            if (currentUrl !== lastUrl) {
-                lastUrl = currentUrl;
-                removeButton();
-                addButton();
-            }
-        }).observe(document, { subtree: true, childList: true });
-    }
-
-    // Map Alert prüfen und ggf. neu laden
-    const checkAndReload = () => {
-        const targetElement = document.querySelector(config.selectors.mapAlert);
-        if (targetElement &&
-            targetElement.offsetParent !== null &&
-            window.getComputedStyle(targetElement).visibility !== 'hidden' &&
-            targetElement.textContent.includes("Nicht authentifizierter Zugriff auf Kartendaten.")
-           ) {
-            location.reload();
-        }
-    };
-
-    // Allgemeine Initialisierung
-    window.addEventListener('load', () => {
-        injectStyles();
-        removeButton();
-        addButton();
-        monitorUrlChanges();
     });
 
-    // Physical Browser spezifische Initialisierung
-    if (window.location.href.includes('https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html')) {
+    contextMenuInstance = new ContextMenu();
 
-        // Initialer Check und regelmäßiger Intervall
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            checkAndReload();
-        } else {
-            window.addEventListener('DOMContentLoaded', checkAndReload);
-        }
-        setInterval(checkAndReload, config.checkInterval);
-
-        // Layer-Visibility-Elemente verarbeiten
-        waitForElement(config.selectors.layerVisibility).then((allLayerVisibilityElements) => {
-            if (allLayerVisibilityElements.length >= 15) {
-                allLayerVisibilityElements[1].click();
-                allLayerVisibilityElements[14].click();
-            } else {
-                console.error('TOMMY - Not enough layer-visibility elements found.');
-            }
-        });
-
-        // Formularfelder befüllen
-        GM.getValue('customFieldValues').then((values) => {
-            if (values) {
-                if (areAllFieldsPresent()) {
-                    populateFields(values);
-                } else {
-                    const observer = new MutationObserver(() => {
-                        if (areAllFieldsPresent()) {
-                            observer.disconnect();
-                            onFieldsReady(values);
-                        }
-                    });
-                    observer.observe(document.body, { childList: true, subtree: true });
-                }
-            }
-        });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', addTinyMCEHandler);
+    } else {
+        addTinyMCEHandler();
     }
+
+    setInterval(addTinyMCEHandler, 500);
+
 })();
