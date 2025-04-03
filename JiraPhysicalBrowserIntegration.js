@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Jira - Physical Browser Integration
-// @version       1.0.2
+// @version       1.0.3
 // @description   Jira - Physical Browser Integration
 // @match         https://nd-jira.unity.media.corp/*
 // @match         https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
@@ -33,7 +33,7 @@
             }
         },
         errorMessage: {
-            text: 'Keine GPS-Koordinaten gefunden.',
+            text: 'Adresse fehlerhaft?',
             class: 'error-message animated-button'
         },
         addressData: {
