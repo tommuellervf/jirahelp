@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Jira - Physical Browser Integration
-// @version       1.0.3
+// @version       1.0.4
 // @description   Jira - Physical Browser Integration
 // @match         https://nd-jira.unity.media.corp/*
 // @match         https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
@@ -179,9 +179,11 @@
         errorLi.appendChild(errorSpan);
         ul.appendChild(errorLi);
 
-        // Animationseffekt für Fehlermeldung
+        // Animationseffekt für Fehlermeldung hinzufügen (gleich wie bei Buttons)
         setTimeout(() => {
             createParticleEffect(errorSpan);
+            // Zusätzliche Pulsier-Animation für den Fehlertext
+            errorSpan.style.animation = `popIn ${config.animation.animationDuration}ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, glow 1.5s ease-in-out infinite`;
         }, 100);
     }
 
@@ -273,9 +275,9 @@
             }
 
             @keyframes glow {
-                0% { box-shadow: 0 0 5px 0px rgba(255, 255, 255, 0.5); }
-                50% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.8); }
-                100% { box-shadow: 0 0 5px 0px rgba(255, 255, 255, 0.5); }
+                0% { box-shadow: 0 0 5px 0px rgba(255, 82, 82, 0.5); }
+                50% { box-shadow: 0 0 15px 5px rgba(255, 82, 82, 0.8); }
+                100% { box-shadow: 0 0 5px 0px rgba(255, 82, 82, 0.5); }
             }
 
             .error-message {
@@ -286,6 +288,7 @@
                 background-color: rgba(255, 82, 82, 0.1);
                 border: 1px solid #FF5252;
                 margin-left: 10px;
+                display: inline-block;
             }
         `;
         document.head.appendChild(styleElement);
