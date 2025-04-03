@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Jira - Physical Browser Integration
-// @version       1.0.1
+// @version       1.0.3
 // @description   Jira - Physical Browser Integration
 // @match         https://nd-jira.unity.media.corp/*
 // @match         https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
@@ -33,7 +33,7 @@
             }
         },
         errorMessage: {
-            text: 'Keine GPS-Koordinaten gefunden',
+            text: 'Adresse fehlerhaft?',
             class: 'error-message animated-button'
         },
         addressData: {
@@ -51,7 +51,7 @@
             mapAlert: 'div#map-alert',
             layerVisibility: 'span.layer-visibility'
         },
-        maxGpsAttempts: 5,
+        maxGpsAttempts: 3,
         checkInterval: 1000,
         separatorColors: {
             separator1: 'white'
@@ -157,10 +157,10 @@
     function showErrorMessage() {
         const ul = document.querySelector(config.selectors.buttonContainer);
         if (!ul) return;
-        
+
         // Entferne bestehende Elemente
         removeButton();
-        
+
         // Erster Separator
         const separator1 = document.createElement('span');
         separator1.style.marginLeft = '10px';
@@ -179,9 +179,11 @@
         errorLi.appendChild(errorSpan);
         ul.appendChild(errorLi);
 
-        // Animationseffekt für Fehlermeldung
+        // Animationseffekt für Fehlermeldung hinzufügen (gleich wie bei Buttons)
         setTimeout(() => {
             createParticleEffect(errorSpan);
+            // Zusätzliche Pulsier-Animation für den Fehlertext
+            errorSpan.style.animation = `popIn ${config.animation.animationDuration}ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, glow 1.5s ease-in-out infinite`;
         }, 100);
     }
 
@@ -189,7 +191,7 @@
     async function getGPSData(plz, ort, strasse) {
         // URL zusammensetzen
         const osmUrl = strasse
-        ? `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`
+            ? `${config.osmUrl}&postalcode=${plz}&city=${ort}&street=${strasse}`
             : `${config.osmUrl}&postalcode=${plz}&city=${ort}`;
 
         console.log("TOMMY - PLZ:", plz);
@@ -212,10 +214,10 @@
         }
 
         console.error("TOMMY - Max attempts reached: No GPS data found for the given address");
-        
+
         // Hier wird die Fehlermeldung angezeigt, wenn keine GPS-Daten gefunden wurden
         showErrorMessage();
-        
+
         return null;
     }
 
@@ -273,11 +275,11 @@
             }
 
             @keyframes glow {
-                0% { box-shadow: 0 0 5px 0px rgba(255, 255, 255, 0.5); }
-                50% { box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.8); }
-                100% { box-shadow: 0 0 5px 0px rgba(255, 255, 255, 0.5); }
+                0% { box-shadow: 0 0 5px 0px rgba(255, 82, 82, 0.5); }
+                50% { box-shadow: 0 0 15px 5px rgba(255, 82, 82, 0.8); }
+                100% { box-shadow: 0 0 5px 0px rgba(255, 82, 82, 0.5); }
             }
-            
+
             .error-message {
                 color: #FF5252;
                 font-weight: bold;
@@ -286,6 +288,8 @@
                 background-color: rgba(255, 82, 82, 0.1);
                 border: 1px solid #FF5252;
                 margin-left: 10px;
+                display: inline-block;
+                cursor: pointer;
             }
         `;
         document.head.appendChild(styleElement);
@@ -363,7 +367,7 @@
 
         // GPS-Daten abrufen und Buttons hinzufügen
         const gpsData = await checkCondition(issueKey);
-        if (!gpsData) return; // Die Fehlermeldung wird bereits in getGPSData gezeigt
+        if (!gpsData) return;
 
         const { lat, lon } = gpsData;
         const PBURL = generatePBURL(lat, lon);
