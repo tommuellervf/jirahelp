@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Jira - Physical Browser Integration
-// @version       1.0.4
+// @version       1.0.5
 // @description   Jira - Physical Browser Integration
 // @match         https://nd-jira.unity.media.corp/*
 // @match         https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
@@ -58,7 +58,7 @@
         },
         animation: {
             numParticles: 20,
-            particleColors: ['#FF5252', '#FFEB3B', '#2196F3', '#4CAF50', '#9C27B0'],
+            particleColors: ['#023852', '#079FA0', '#9FD8C5', '#4FAC005', '#F58B01', '#DC2E2F', '#FF5252', '#FFEB3B', '#2196F3', '#4CAF50', '#9C27B0'],
             animationDuration: 800,
             particleDuration: 1500
         }
