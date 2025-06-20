@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Autofill Abnahme Plan, Abnahme & Abschluss Dates
 // @namespace    none
-// @version      1.0.10
+// @version      1.0.11
 // @description  Füllt Abnahme Plan Datum, Abnahme Datum & Abschluss Daten
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillAbnahmePlanDate.js
@@ -58,37 +58,30 @@
     }
 
     function selectDropdownOption() {
+        const config = {
+            dropdowns: [
+                { field: 'customfield_24908', value: 'Sonstiges' },
+                { field: 'customfield_24909', value: 'Partner' }
+            ],
+            textarea: { field: '#customfield_11900', value: 'Terminanpassung' }
+        };
 
-        const label24908 = document.querySelector('label[for="customfield_24908"]');
-        const fieldGroup24908 = label24908.closest('.field-group');
-        const selectElement24908 = fieldGroup24908.querySelector('select[id*="connect-select-wrapper"]');
+        config.dropdowns.forEach(({ field, value }) => {
+            const select = document.querySelector(`label[for="${field}"]`)
+            ?.closest('.field-group')
+            ?.querySelector('select[id*="connect-select-wrapper"]');
 
-        for (let i = 0; i < selectElement24908.options.length; i++) {
-            if (selectElement24908.options[i].value === 'Sonstiges') {
-                selectElement24908.selectedIndex = i;
-                const changeEvent = new Event('change', { bubbles: true });
-                selectElement24908.dispatchEvent(changeEvent);
-                break;
+            if (select) {
+                select.value = value;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
             }
+        });
+
+        const textArea = document.querySelector(config.textarea.field);
+        if (textArea) {
+            textArea.value = config.textarea.value;
+            ['input', 'change'].forEach(event=>textArea.dispatchEvent(new Event(event, { bubbles: true })));
         }
-
-        const label24909 = document.querySelector('label[for="customfield_24909"]');
-        const fieldGroup24909 = label24909.closest('.field-group');
-        const selectElement24909 = fieldGroup24909.querySelector('select[id*="connect-select-wrapper"]');
-
-        for (let i = 0; i < selectElement24909.options.length; i++) {
-            if (selectElement24909.options[i].value === 'Partner') {
-                selectElement24909.selectedIndex = i;
-                const changeEvent = new Event('change', { bubbles: true });
-                selectElement24909.dispatchEvent(changeEvent);
-                break;
-            }
-        }
-
-        const textArea11900 = document.querySelector('#customfield_11900');
-        textArea11900.value = 'Terminverschiebung';
-        textArea11900.dispatchEvent(new Event('input', { bubbles: true }));
-        textArea11900.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     function removeDatePickerDialogs() {
@@ -109,7 +102,6 @@
             const newDate = calculateDate(21, dateValue);
             if (newDate) {
                 fillCustomField('#customfield_13602', newDate);
-                removeDatePickerDialogs();
                 selectDropdownOption();
             }
         }
@@ -176,22 +168,22 @@
 
                 if (dialog101) {
                     waitForElements(['#issue-workflow-transition-submit'], form => {
-                        handleDialog('#workflow-transition-101-dialog', fillTransition101Dialog, () => { });
                         removeDatePickerDialogs();
+                        handleDialog('#workflow-transition-101-dialog', fillTransition101Dialog, () => { });
                     });
                 }
 
                 if (dialog221) {
                     waitForElements(['#issue-workflow-transition-submit'], form => {
+                        removeDatePickerDialogs();
                         handleDialog('#workflow-transition-221-dialog', fillTransition221Dialog, () => { });
                     });
-
                 }
 
                 if (dialog781) {
                     waitForElements(['#issue-workflow-transition-submit'], form => {
-                        fillDateFieldDialog778('div#workflow-transition-781-dialog', 'input[type="text"]', 14);
                         removeDatePickerDialogs();
+                        fillDateFieldDialog778('div#workflow-transition-781-dialog', 'input[type="text"]', 14);
                     });
                 }
             }
