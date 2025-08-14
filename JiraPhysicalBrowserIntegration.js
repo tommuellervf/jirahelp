@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Jira - Physical Browser Integration
-// @version       1.0.5
+// @version       1.0.6
 // @description   Jira - Physical Browser Integration
 // @match         https://nd-jira.unity.media.corp/*
 // @match         https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
@@ -78,7 +78,7 @@
 
     // Issue-Key aus URL extrahieren
     function extractIssueKey(url) {
-        const match = url.match(/ANDE-\d+/);
+        const match = url.match(/(ANDE-\d+|LINIE-\d+)/);
         return match ? match[0] : null;
     }
 
