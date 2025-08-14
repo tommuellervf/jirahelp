@@ -79,7 +79,9 @@
     // Issue-Key aus URL extrahieren
     function extractIssueKey(url) {
         const match = url.match(/(ANDE-\d+|LINIE-\d+)/);
-        return match ? match[0] : null;
+        const result = match ? match[0] : null;
+
+        return result;
     }
 
     // Grad in DMS-Format umwandeln
