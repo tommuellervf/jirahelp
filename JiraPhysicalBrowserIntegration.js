@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Jira - Physical Browser Integration
-// @version       1.0.7
+// @version       1.0.8
 // @description   Jira - Physical Browser Integration
 // @match         https://nd-jira.unity.media.corp/*
 // @match         https://vfde-nig.ker-l-nigmsn01p.unity.media.corp:30443/physical_browser/index.html*
@@ -139,7 +139,7 @@
 
         // Adressdaten aufbereiten
         const processedStrasse = strasse
-        ? strasse.replace(/straße/gi, 'str.').replace(/strasse/gi, 'str.')
+        ? strasse.replace(/straße/gi, 'str.').replace(/strasse/gi, 'str.').trim()
         : null;
 
         const addressData = {
