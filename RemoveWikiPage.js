@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript zum entfernen der Wiki Page Links in Jira
 // @namespace    none
-// @version      1.0.7
+// @version      1.0.8
 // @description  Entfernt Wiki Page Links in Jira
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -13,8 +13,8 @@
 (function() {
     'use strict';
 
-    function removeWikiPageLinks(cell) {
-        if (!cell) return;
+    function removeWikiPageLinks(container) {
+        if (!container) return;
 
         const isWikiPageLink = (node) =>
         node.nodeType === Node.ELEMENT_NODE &&
@@ -22,31 +22,27 @@
               (node.textContent.trim() === 'Wiki Page' ||
                node.href?.includes('ker-l-jirapp02p.unity.media.corp'));
 
-        const childNodes = Array.from(cell.childNodes);
-        const nodesToRemove = [];
+        const linksToRemove = container.querySelectorAll('a');
 
-        for (let i = 0; i < childNodes.length; i++) {
-            const node = childNodes[i];
+        linksToRemove.forEach(link => {
+            if (isWikiPageLink(link)) {
+                 const nodesToRemove = [link];
 
-            if (isWikiPageLink(node)) {
-                nodesToRemove.push(node);
+                 const previousSibling = link.previousSibling;
+                 if (previousSibling?.nodeType === Node.TEXT_NODE && previousSibling.textContent.trim() === ',') {
+                     nodesToRemove.push(previousSibling);
+                 }
 
-                const previousSibling = node.previousSibling;
-                if (previousSibling?.nodeType === Node.TEXT_NODE && previousSibling.textContent.trim() === ',') {
-                    nodesToRemove.push(previousSibling);
-                }
-
-                const nextSibling = node.nextSibling;
-                if (nextSibling?.nodeType === Node.TEXT_NODE && nextSibling.textContent.trim() === ',') {
-                    const nextNextSibling = nextSibling.nextSibling;
-                    if (!nextNextSibling || nextNextSibling.nodeType !== Node.ELEMENT_NODE) {
-                        nodesToRemove.push(nextSibling);
-                    }
-                }
+                 const nextSibling = link.nextSibling;
+                 if (nextSibling?.nodeType === Node.TEXT_NODE && nextSibling.textContent.trim() === ',') {
+                     const nextNextSibling = nextSibling.nextSibling;
+                     if (!nextNextSibling || nextNextSibling.nodeType !== Node.ELEMENT_NODE) {
+                         nodesToRemove.push(nextSibling);
+                     }
+                 }
+                nodesToRemove.forEach(node => node.remove());
             }
-        }
-
-        nodesToRemove.forEach(node => node.remove());
+        });
     }
 
     function observeDOM() {
@@ -59,11 +55,11 @@
                     mutation.addedNodes.forEach(node => {
                         if (node.nodeType !== Node.ELEMENT_NODE) return;
 
-                        if (node.matches('td.issuelinks')) {
+                        if (node.matches('td.issuelinks, div.link-group')) {
                             removeWikiPageLinks(node);
                         }
 
-                        node.querySelectorAll('td.issuelinks').forEach(removeWikiPageLinks);
+                        node.querySelectorAll('td.issuelinks, div.link-group').forEach(removeWikiPageLinks);
                     });
                 }
             }
@@ -73,13 +69,15 @@
     }
 
     function cleanExistingLinks() {
-        document.querySelectorAll('td.issuelinks').forEach(removeWikiPageLinks);
+        document.querySelectorAll('td.issuelinks, div.link-group').forEach(removeWikiPageLinks);
     }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            cleanExistingLinks();
-            observeDOM();
+            // setTimeout(() => {
+                cleanExistingLinks();
+                observeDOM();
+            // }, 100);
         });
     } else {
         cleanExistingLinks();
