@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Hauptskript zum entfernen der Wiki Page Links in Jira
+// @name         Hauptskript zum entfernen der Wiki Page Links
 // @namespace    none
-// @version      1.0.9
-// @description  Entfernt Wiki Page Links in Jira
+// @version      1.0.10
+// @description  Entfernt Wiki Page Links und versteckt das aui-tooltip DIV in Jira
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/RemoveWikiPage.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/RemoveWikiPage.js
@@ -15,11 +15,10 @@
     const isWikiPageLink = (node) => {
         try {
             return node.nodeType === Node.ELEMENT_NODE &&
-                   node.tagName === 'A' &&
-                   (node.textContent.trim() === 'Wiki Page' ||
-                    /ker-l-jirapp\d+p\.unity\.media\.corp/.test(node.href));
+                node.tagName === 'A' &&
+                (node.textContent.trim() === 'Wiki Page' ||
+                 /ker-l-jirapp\d+p\.unity\.media\.corp/.test(node.href));
         } catch (e) {
-            console.error('Error checking Wiki Page link:', e);
             return false;
         }
     };
@@ -50,7 +49,15 @@
                 nodesToRemove.forEach(node => node.remove());
             });
         } catch (e) {
-            console.error('Error removing Wiki Page links:', e);
+        }
+    }
+
+    function hideAuiTooltip() {
+        try {
+            const style = document.createElement('style');
+            style.textContent = '#aui-tooltip { display: none !important; }';
+            document.head.appendChild(style);
+        } catch (e) {
         }
     }
 
@@ -73,7 +80,6 @@
                     });
                 }
             } catch (e) {
-                console.error('Error in MutationObserver:', e);
             }
         });
 
@@ -84,7 +90,6 @@
         try {
             document.querySelectorAll('td.issuelinks, div.link-group').forEach(removeWikiPageLinks);
         } catch (e) {
-            console.error('Error cleaning existing links:', e);
         }
     }
 
@@ -92,13 +97,14 @@
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 cleanExistingLinks();
+                hideAuiTooltip();
                 observeDOM();
             });
         } else {
             cleanExistingLinks();
+            hideAuiTooltip();
             observeDOM();
         }
     } catch (e) {
-        console.error('Error initializing script:', e);
     }
 })();
