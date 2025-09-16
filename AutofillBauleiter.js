@@ -1,12 +1,11 @@
 // ==UserScript==
 // @name         Autofill Bauleiter
 // @namespace    none
-// @version      1.0.7
+// @version      1.0.8
 // @description  Autofill Bauleiter
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillBauleiter.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillBauleiter.js
-// @grant        GM.xmlHttpRequest
 // @noframes
 // ==/UserScript==
 
