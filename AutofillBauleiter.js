@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Autofill Bauleiter
 // @namespace    none
-// @version      1.0.6
+// @version      1.0.7
 // @description  Autofill Bauleiter
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillBauleiter.js
@@ -45,6 +45,15 @@
 
                 setTimeout(() => {
                     inputField2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, which: 9, bubbles: true, cancelable: true }));
+                    
+                    setTimeout(() => {
+                        const submitButton = document.getElementById('issue-workflow-transition-submit');
+                        if (submitButton) {
+                            submitButton.focus();
+                        } else {
+                            console.error('Submit button with ID issue-workflow-transition-submit not found');
+                        }
+                    }, 500);
                 }, 500);
             }, 1000);
         } else {
