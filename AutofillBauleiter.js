@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Autofill Bauleiter
 // @namespace    none
-// @version      1.0.9
+// @version      1.0.10
 // @description  Autofill Bauleiter
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillBauleiter.js
@@ -58,7 +58,6 @@
             }));
             await delay(500);
 
-            // Feld 2 ausfüllen
             field2.value = bearbeiterName;
             field2.dispatchEvent(new Event('input'));
             await delay(500);
