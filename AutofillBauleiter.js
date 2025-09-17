@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Autofill Bauleiter
 // @namespace    none
-// @version      1.0.8
+// @version      1.0.9
 // @description  Autofill Bauleiter
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/AutofillBauleiter.js
@@ -25,38 +25,57 @@
         return null;
     }
 
-    function fillFields() {
-        const inputField1 = document.querySelector('#customfield_12302-field');
-        const inputField2 = document.querySelector('#customfield_12303-field');
+    async function fillFields() {
+
+        const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        const selectors = {
+            field1: '#customfield_12302-field',
+            field2: '#customfield_12303-field',
+            submitButton: '#issue-workflow-transition-submit'
+        };
+
+        const field1 = document.querySelector(selectors.field1);
+        const field2 = document.querySelector(selectors.field2);
+        const submitButton = document.querySelector(selectors.submitButton);
         const bearbeiterName = getBearbeiterName();
 
-        if (inputField1 && inputField2 && bearbeiterName) {
-            inputField1.value = bearbeiterName;
-            inputField1.dispatchEvent(new Event('input'));
+        if (!field1 || !field2 || !bearbeiterName) {
+            return;
+        }
 
-            setTimeout(() => {
-                inputField1.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, which: 9, bubbles: true, cancelable: true }));
-            }, 500);
+        try {
+            field1.value = bearbeiterName;
+            field1.dispatchEvent(new Event('input'));
+            await delay(500);
+            field1.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'Tab',
+                code: 'Tab',
+                keyCode: 9,
+                which: 9,
+                bubbles: true,
+                cancelable: true
+            }));
+            await delay(500);
 
-            setTimeout(() => {
-                inputField2.value = bearbeiterName;
-                inputField2.dispatchEvent(new Event('input'));
+            // Feld 2 ausfüllen
+            field2.value = bearbeiterName;
+            field2.dispatchEvent(new Event('input'));
+            await delay(500);
+            field2.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'Tab',
+                code: 'Tab',
+                keyCode: 9,
+                which: 9,
+                bubbles: true,
+                cancelable: true
+            }));
 
-                setTimeout(() => {
-                    inputField2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, which: 9, bubbles: true, cancelable: true }));
-                    
-                    setTimeout(() => {
-                        const submitButton = document.getElementById('issue-workflow-transition-submit');
-                        if (submitButton) {
-                            submitButton.focus();
-                        } else {
-                            console.error('Submit button with ID issue-workflow-transition-submit not found');
-                        }
-                    }, 500);
-                }, 500);
-            }, 1000);
-        } else {
-            console.error('Input fields or Bearbeiter name not found');
+            if (submitButton) {
+                submitButton.focus();
+            }
+        } catch (error) {
+            console.error('Fehler beim Ausfüllen der Felder:', error);
         }
     }
 
@@ -70,7 +89,7 @@
                     const dialogElement = document.getElementById('workflow-transition-231-dialog');
                     if (dialogElement) {
                         observer.disconnect();
-                        setTimeout(fillFields, 1000);
+                        setTimeout(fillFields, 2000);
                         break;
                     }
                 }
