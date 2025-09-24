@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.28
+// @version      1.0.29
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @grant        GM.xmlHttpRequest
@@ -13,7 +13,21 @@
 (function() {
     'use strict';
 
+    let checkboxCounter = 0;
+
     const processedFrames = new WeakSet();
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .contextmenu-option-checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 6px;
+      }
+    `;
+
+    document.head.appendChild(style);
 
     function addTinyMCEHandler() {
         const iframes = document.querySelectorAll('iframe.tox-edit-area__iframe');
@@ -120,49 +134,20 @@
                 borderBottom: index < this.menuData.length - 1 ? '1px solid #ddd' : ''
             }, category.label);
 
-            const subMenu = this.createSubMenu(category.items || []);
+            const subMenu = this.createSubMenu(category.items || [], category.options || []);
             this.attachCategoryListeners(categoryItem, subMenu);
             categoryItem.appendChild(subMenu);
             return categoryItem;
         }
 
-        createSubMenu(items) {
+        createSubMenu(items, options = []) {
             const subMenu = this.createElement('div', {
                 ...COMMON_STYLES,
                 position: 'absolute',
                 padding: '2px',
-                left: '90%',
                 display: 'none',
                 width: '350px',
                 zIndex: '11000',
-            });
-
-            const isMouseOverSubMenu = (event) => {
-                const rect = subMenu.getBoundingClientRect();
-                return (
-                    event.clientX >= rect.left &&
-                    event.clientX <= rect.right &&
-                    event.clientY >= rect.top &&
-                    event.clientY <= rect.bottom
-                );
-            };
-
-            const isMouseAtTop = (event) => {
-                const mouseY = event.clientY;
-                const windowHeight = window.innerHeight;
-                return mouseY < windowHeight / 2;
-            };
-
-            window.addEventListener('mousemove', (event) => {
-                if (!isMouseOverSubMenu(event)) {
-                    if (isMouseAtTop(event)) {
-                        subMenu.style.top = '0';
-                        subMenu.style.bottom = '';
-                    } else {
-                        subMenu.style.top = '';
-                        subMenu.style.bottom = '0';
-                    }
-                }
             });
 
             items.forEach((snippet, index) => {
@@ -171,6 +156,82 @@
                     subMenu.appendChild(this.createSubMenuItem(snippet, isLastItem));
                 }
             });
+
+            if (options && options.length > 0) {
+                const optionsContainer = this.createElement('div', {
+                    borderTop: '1px solid #ddd',
+                    marginTop: '1px',
+                    padding: '2px 2px 2px 2px',
+                    background: '#f8f9fa'
+                });
+
+                const style = document.createElement('style');
+                style.textContent = `
+                    .contextmenu-option-checkbox {
+                        appearance: none;
+                        -webkit-appearance: none;
+                        -moz-appearance: none;
+                        width: 16px;
+                        height: 16px;
+                        border: 2px solid #000;
+                        background: #fff;
+                        cursor: pointer;
+                        position: relative;
+                        box-sizing: border-box;
+                        vertical-align: middle;
+                    }
+                    .contextmenu-option-checkbox:checked::before {
+                        content: '';
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 8px;
+                        height: 8px;
+                        border: 1px solid #000;
+                        background: #000;
+                        opacity: 1;
+                        transition: opacity 0.2s ease;
+                    }
+                    .contextmenu-option-checkbox:not(:checked)::before {
+                        opacity: 0;
+                    }
+                    .contextmenu-option-checkbox-wrapper label {
+                        display: flex;
+                        align-items: center;
+                        gap: 5px;
+                        font-size: 14px;
+                        cursor: pointer;
+                    }
+                    .contextmenu-option-checkbox-wrapper {
+                        display: flex;
+                        align-items: center;
+                        padding: 2px;
+                    }
+                `;
+                document.head.appendChild(style);
+
+                options.forEach((opt) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'contextmenu-option-checkbox-wrapper';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = opt.text;
+                    checkbox.className = 'contextmenu-option-checkbox';
+                    checkbox.id = `checkbox-${checkboxCounter++}`;
+
+                    const label = document.createElement('label');
+                    label.htmlFor = checkbox.id;
+                    label.textContent = opt.label;
+
+                    wrapper.appendChild(checkbox);
+                    wrapper.appendChild(label);
+                    optionsContainer.appendChild(wrapper);
+                });
+
+                subMenu.appendChild(optionsContainer);
+            }
 
             return subMenu;
         }
@@ -187,20 +248,50 @@
         }
 
         attachCategoryListeners(categoryItem, subMenu) {
-            categoryItem.addEventListener('mouseenter', () => {
+            categoryItem.addEventListener('mouseenter', (event) => {
                 categoryItem.style.backgroundColor = '#ECEDF0';
                 categoryItem.style.borderRadius = '6px';
                 categoryItem.style.transition = 'background-color 0.2s ease, border-radius 0.2s ease';
                 subMenu.style.display = 'block';
                 subMenu.style.opacity = '0';
                 subMenu.style.transform = 'scale(0.95)';
+                subMenu.style.zIndex = '12000';
+
+                const categoryRect = categoryItem.getBoundingClientRect();
+                const subMenuRect = subMenu.getBoundingClientRect();
+                const { innerWidth, innerHeight } = window;
+                const mouseY = event.clientY;
+
+                let left = categoryRect.width - 5;
+                subMenu.style.right = '';
+                subMenu.style.left = `${left}px`;
+
+                if (categoryRect.left + left + subMenuRect.width > innerWidth) {
+                    left = -subMenuRect.width;
+                    subMenu.style.left = `${left}px`;
+                }
+
+                let top = mouseY - categoryRect.top - 40;
+                subMenu.style.bottom = '';
+
+                let proposedTop = categoryRect.top + top;
+                let proposedBottom = proposedTop + subMenuRect.height;
+                if (proposedBottom > innerHeight) {
+                    top = innerHeight - categoryRect.top - subMenuRect.height - 22;
+                }
+
+                proposedTop = categoryRect.top + top;
+                if (proposedTop < 0) {
+                    top = -categoryRect.top + 5;
+                }
+
+                subMenu.style.top = `${top}px`;
 
                 setTimeout(() => {
                     subMenu.style.opacity = '1';
                     subMenu.style.transform = 'scale(1)';
                 }, 400);
             });
-
 
             categoryItem.addEventListener('mouseleave', () => {
                 categoryItem.style.backgroundColor = 'transparent';
@@ -348,30 +439,28 @@
         async handleClick(snippetText) {
             let textToInsert = await this.replacePlaceholder(snippetText);
 
+            const checkedOptions = [];
+            if (this.menu && this.menu.querySelectorAll) {
+                const checkboxes = this.menu.querySelectorAll('.contextmenu-option-checkbox');
+                checkboxes.forEach(cb => {
+                    if (cb.checked) checkedOptions.push(cb.value);
+                });
+            }
+
+            if (checkedOptions.length > 0) {
+                textToInsert += checkedOptions.join('');
+            }
+
             if (this.isTinyMCE) {
                 textToInsert = this.formatText(textToInsert);
                 this.targetElement.insertContent(textToInsert);
-
-                setTimeout(() => {
-                    const body = this.targetElement.getBody();
-                    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, null, false);
-
-                    let node;
-                    while (node = walker.nextNode()) {
-                        const position = node.nodeValue.indexOf('NAME');
-                        if (position !== -1) {
-                            const range = this.targetElement.dom.createRng();
-                            range.setStart(node, position);
-                            range.setEnd(node, position + 4);
-                            this.targetElement.selection.setRng(range);
-                            break;
-                        }
-                    }
-                }, 100);
-
                 this.isTinyMCE = false;
             } else {
                 this.insertText(this.targetElement, textToInsert);
+            }
+
+            if (this.menu && this.menu.querySelectorAll) {
+                this.menu.querySelectorAll('.contextmenu-option-checkbox').forEach(cb => (cb.checked = false));
             }
 
             this.menu.style.display = 'none';
