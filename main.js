@@ -1,10 +1,9 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.29
+// @version      1.0.30
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
-// @grant        GM.xmlHttpRequest
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
 // @downloadURL  https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
 // @noframes
@@ -248,56 +247,95 @@
         }
 
         attachCategoryListeners(categoryItem, subMenu) {
+            let hoverTimeout;
+
             categoryItem.addEventListener('mouseenter', (event) => {
-                categoryItem.style.backgroundColor = '#ECEDF0';
-                categoryItem.style.borderRadius = '6px';
-                categoryItem.style.transition = 'background-color 0.2s ease, border-radius 0.2s ease';
-                subMenu.style.display = 'block';
-                subMenu.style.opacity = '0';
-                subMenu.style.transform = 'scale(0.95)';
-                subMenu.style.zIndex = '12000';
-
-                const categoryRect = categoryItem.getBoundingClientRect();
-                const subMenuRect = subMenu.getBoundingClientRect();
-                const { innerWidth, innerHeight } = window;
-                const mouseY = event.clientY;
-
-                let left = categoryRect.width - 5;
-                subMenu.style.right = '';
-                subMenu.style.left = `${left}px`;
-
-                if (categoryRect.left + left + subMenuRect.width > innerWidth) {
-                    left = -subMenuRect.width;
-                    subMenu.style.left = `${left}px`;
+                if (hoverTimeout) {
+                    clearTimeout(hoverTimeout);
+                    hoverTimeout = null;
                 }
 
-                let top = mouseY - categoryRect.top - 40;
-                subMenu.style.bottom = '';
+                Object.assign(categoryItem.style, {
+                    backgroundColor: '#ECEDF0',
+                    borderRadius: '6px',
+                    transition: 'background-color 0.2s ease, border-radius 0.2s ease'
+                });
 
-                let proposedTop = categoryRect.top + top;
-                let proposedBottom = proposedTop + subMenuRect.height;
-                if (proposedBottom > innerHeight) {
-                    top = innerHeight - categoryRect.top - subMenuRect.height - 22;
-                }
+                Object.assign(subMenu.style, {
+                    display: 'block',
+                    opacity: '1',
+                    transform: 'scale(1)',
+                    zIndex: '12000',
+                    transition: 'opacity 0.3s ease, transform 0.3s ease'
+                });
 
-                proposedTop = categoryRect.top + top;
-                if (proposedTop < 0) {
-                    top = -categoryRect.top + 5;
-                }
+                this.positionSubMenu(categoryItem, subMenu, event);
 
-                subMenu.style.top = `${top}px`;
-
-                setTimeout(() => {
-                    subMenu.style.opacity = '1';
-                    subMenu.style.transform = 'scale(1)';
-                }, 400);
+                requestAnimationFrame(() => {
+                    Object.assign(subMenu.style, {
+                        opacity: '1',
+                        transform: 'scale(1)'
+                    });
+                });
             });
 
             categoryItem.addEventListener('mouseleave', () => {
-                categoryItem.style.backgroundColor = 'transparent';
-                categoryItem.style.borderRadius = '0px';
+                hoverTimeout = setTimeout(() => {
+                    Object.assign(categoryItem.style, {
+                        backgroundColor: 'transparent',
+                        borderRadius: '0px'
+                    });
+
+                    subMenu.style.display = 'none';
+                }, 0);
+            });
+
+            subMenu.addEventListener('mouseenter', () => {
+                if (hoverTimeout) {
+                    clearTimeout(hoverTimeout);
+                    hoverTimeout = null;
+                }
+            });
+
+            subMenu.addEventListener('mouseleave', () => {
+                Object.assign(categoryItem.style, {
+                    backgroundColor: 'transparent',
+                    borderRadius: '0px'
+                });
                 subMenu.style.display = 'none';
             });
+        }
+
+        positionSubMenu(categoryItem, subMenu, event) {
+            const categoryRect = categoryItem.getBoundingClientRect();
+            const subMenuRect = subMenu.getBoundingClientRect();
+            const { innerWidth, innerHeight } = window;
+            const mouseY = event.clientY;
+
+            let left = categoryRect.width - 5;
+            subMenu.style.right = '';
+
+            if (categoryRect.left + left + subMenuRect.width > innerWidth) {
+                left = -subMenuRect.width;
+            }
+            subMenu.style.left = `${left}px`;
+
+            let top = mouseY - categoryRect.top - 40;
+            subMenu.style.bottom = '';
+
+            let proposedTop = categoryRect.top + top;
+            let proposedBottom = proposedTop + subMenuRect.height;
+
+            if (proposedBottom > innerHeight) {
+                top = innerHeight - categoryRect.top - subMenuRect.height - 5;
+            }
+
+            proposedTop = categoryRect.top + top;
+            if (proposedTop < 0) {
+                top = -categoryRect.top + 5;
+            }
+
+            subMenu.style.top = `${top}px`;
         }
 
         attachSubMenuListeners(subMenuItem, snippetText) {
