@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hauptskript für Kontextmenü
 // @namespace    none
-// @version      1.0.30
+// @version      1.0.31
 // @description  Erstellt das Kontextmenü basierend auf externer Menüstruktur
 // @include      https://nd-jira.unity.media.corp/*
 // @updateURL    https://raw.githubusercontent.com/tommuellervf/jirahelp/main/main.js
@@ -248,8 +248,22 @@
 
         attachCategoryListeners(categoryItem, subMenu) {
             let hoverTimeout;
+            let isMouseOverCategory = false;
+            let isMouseOverSubMenu = false;
+
+            const closeSubMenu = () => {
+                if (!isMouseOverCategory && !isMouseOverSubMenu) {
+                    Object.assign(categoryItem.style, {
+                        backgroundColor: 'transparent',
+                        borderRadius: '0px'
+                    });
+                    subMenu.style.display = 'none';
+                }
+            };
 
             categoryItem.addEventListener('mouseenter', (event) => {
+                isMouseOverCategory = true;
+
                 if (hoverTimeout) {
                     clearTimeout(hoverTimeout);
                     hoverTimeout = null;
@@ -280,29 +294,33 @@
             });
 
             categoryItem.addEventListener('mouseleave', () => {
-                hoverTimeout = setTimeout(() => {
-                    Object.assign(categoryItem.style, {
-                        backgroundColor: 'transparent',
-                        borderRadius: '0px'
-                    });
+                isMouseOverCategory = false;
 
-                    subMenu.style.display = 'none';
+                hoverTimeout = setTimeout(() => {
+                    closeSubMenu();
                 }, 0);
             });
 
             subMenu.addEventListener('mouseenter', () => {
+                isMouseOverSubMenu = true;
+
                 if (hoverTimeout) {
                     clearTimeout(hoverTimeout);
                     hoverTimeout = null;
                 }
             });
 
-            subMenu.addEventListener('mouseleave', () => {
-                Object.assign(categoryItem.style, {
-                    backgroundColor: 'transparent',
-                    borderRadius: '0px'
-                });
-                subMenu.style.display = 'none';
+            subMenu.addEventListener('mouseleave', (event) => {
+                isMouseOverSubMenu = false;
+
+                const relatedTarget = event.relatedTarget;
+                if (relatedTarget === categoryItem || categoryItem.contains(relatedTarget)) {
+                    return;
+                }
+
+                hoverTimeout = setTimeout(() => {
+                    closeSubMenu();
+                }, 0);
             });
         }
 
